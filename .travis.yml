@@ -1,0 +1,18 @@
+language: php
+
+php:
+  - 5.4
+  - 5.5
+  - 5.6
+
+env:
+  - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
+
+before_script:
+  - phpize && ./configure && make
+
+script:
+  - make test | tee test-output.txt && grep 'TEST SUMMARY$' test-output.txt > /dev/null ; test $? '!=' 0
+
+after_failure:
+  - for FILE in `find ./tests -name '*.diff'`; do echo echo $FILE; cat $FILE; echo; done

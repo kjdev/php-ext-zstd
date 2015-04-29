@@ -32,6 +32,12 @@
 #include "php_zstd.h"
 
 /* zstd */
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
 #include "zstd/lib/zstd.h"
 #include "zstd/lib/zstd_static.h"
 

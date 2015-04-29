@@ -1,5 +1,7 @@
 # Zstd Extension for PHP
 
+[![Build Status](https://secure.travis-ci.org/kjdev/php-ext-zstd.png?branch=master)](https://travis-ci.org/kjdev/php-ext-zstd)
+
 This extension allows Zstd.
 
 Documentation for Zstd can be found at [» https://github.com/Cyan4973/zstd](https://github.com/Cyan4973/zstd).
