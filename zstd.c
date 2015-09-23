@@ -28,7 +28,11 @@
 #include <php.h>
 #include <php_ini.h>
 #include <ext/standard/info.h>
+#if ZEND_MODULE_API_NO >= 20141001
+#include <ext/standard/php_smart_string.h>
+#else
 #include <ext/standard/php_smart_str.h>
+#endif
 #include "php_zstd.h"
 
 /* zstd */
@@ -85,7 +89,11 @@ ZEND_FUNCTION(zstd_compress)
     } else if (result <= 0) {
         RETVAL_FALSE;
     } else {
+#if ZEND_MODULE_API_NO >= 20141001
+        RETVAL_STRINGL(output, result);
+#else
         RETVAL_STRINGL(output, result, 1);
+#endif
     }
 
     efree(output);
@@ -94,7 +102,11 @@ ZEND_FUNCTION(zstd_compress)
 ZEND_FUNCTION(zstd_uncompress)
 {
     zval *data;
-    smart_str decomp = { 0 };
+#if ZEND_MODULE_API_NO >= 20141001
+    smart_string decomp = {0};
+#else
+    smart_str decomp = {0};
+#endif
     char *input;
     char header[MAX_HEADER_SIZE];
     char *in, *out, *op, *end;
@@ -169,7 +181,11 @@ ZEND_FUNCTION(zstd_uncompress)
         decoded_size = ZSTD_decompressContinue(dctx, op, end - op,
                                                in, read_size);
         if (decoded_size) {
+#if ZEND_MODULE_API_NO >= 20141001
+            smart_string_appendl(&decomp, op, decoded_size);
+#else
             smart_str_appendl(&decomp, op, decoded_size);
+#endif
             op += decoded_size;
             if (op == end) {
                 op = out;
@@ -185,12 +201,20 @@ ZEND_FUNCTION(zstd_uncompress)
     ZSTD_freeDCtx(dctx);
 
     if (decomp.len) {
+#if ZEND_MODULE_API_NO >= 20141001
+        RETVAL_STRINGL(decomp.c, decomp.len);
+#else
         RETVAL_STRINGL(decomp.c, decomp.len, 1);
+#endif
     } else {
         RETVAL_FALSE;
     }
 
+#if ZEND_MODULE_API_NO >= 20141001
+    smart_string_free(&decomp);
+#else
     smart_str_free(&decomp);
+#endif
 }
 
 
