@@ -229,9 +229,7 @@ typedef struct
 static size_t g_cSize = 0;
 
 extern size_t ZSTD_getcBlockSize(const void* src, size_t srcSize, blockProperties_t* bpPtr);
-extern size_t ZSTD_decodeLiteralsBlock(void* ctx, void* dst, size_t maxDstSize, const BYTE** litPtr, const void* src, size_t srcSize);
-extern size_t ZSTD_decodeSeqHeaders(size_t* lastLLPtr, const BYTE** dumpsPtr, void* DTableLL, void* DTableML, void* DTableOffb, const void* src, size_t srcSize);
-
+extern size_t ZSTD_decodeSeqHeaders(int* nbSeq, const BYTE** dumpsPtr, FSE_DTable* DTableLL, FSE_DTable* DTableML, FSE_DTable* DTableOffb, const void* src, size_t srcSize);
 
 size_t local_ZSTD_compress(void* dst, size_t dstSize, void* buff2, const void* src, size_t srcSize)
 {
@@ -245,12 +243,14 @@ size_t local_ZSTD_decompress(void* dst, size_t dstSize, void* buff2, const void*
     return ZSTD_decompress(dst, dstSize, buff2, g_cSize);
 }
 
+extern size_t ZSTD_decodeLiteralsBlock(void* ctx, void* dst, size_t maxDstSize, const BYTE** litStart, size_t* litSize, const void* src, size_t srcSize);
 size_t local_ZSTD_decodeLiteralsBlock(void* dst, size_t dstSize, void* buff2, const void* src, size_t srcSize)
 {
     U32 ctx[1<<12];
     const BYTE* ll;
+    size_t llSize;
     (void)src; (void)srcSize;
-    ZSTD_decodeLiteralsBlock(ctx, dst, dstSize, &ll, buff2, g_cSize);
+    ZSTD_decodeLiteralsBlock(ctx, dst, dstSize, &ll, &llSize, buff2, g_cSize);
     return (const BYTE*)dst + dstSize - ll;
 }
 
@@ -258,16 +258,16 @@ size_t local_ZSTD_decodeSeqHeaders(void* dst, size_t dstSize, void* buff2, const
 {
     U32 DTableML[1<<11], DTableLL[1<<10], DTableOffb[1<<9];
     const BYTE* dumps;
-    size_t lastllSize;
+    int nbSeq;
     (void)src; (void)srcSize; (void)dst; (void)dstSize;
-    return ZSTD_decodeSeqHeaders(&lastllSize, &dumps, DTableLL, DTableML, DTableOffb, buff2, g_cSize);
+    return ZSTD_decodeSeqHeaders(&nbSeq, &dumps, DTableLL, DTableML, DTableOffb, buff2, g_cSize);
 }
 
 size_t local_conditionalNull(void* dst, size_t dstSize, void* buff2, const void* src, size_t srcSize)
 {
     U32 i;
     size_t total = 0;
-    BYTE* data = buff2;
+    BYTE* data = (BYTE*)buff2;
 
     (void)dst; (void)dstSize; (void)src;
     for (i=0; i < srcSize; i++)
@@ -332,8 +332,8 @@ size_t benchMem(void* src, size_t srcSize, U32 benchNb)
 
     /* Allocation */
     dstBuffSize = ZSTD_compressBound(srcSize);
-    dstBuff = malloc(dstBuffSize);
-    buff2 = malloc(dstBuffSize);
+    dstBuff = (BYTE*)malloc(dstBuffSize);
+    buff2 = (BYTE*)malloc(dstBuffSize);
     if ((!dstBuff) || (!buff2))
     {
         DISPLAY("\nError: not enough memory!\n");
@@ -616,7 +616,7 @@ int main(int argc, char** argv)
 
                     /* Modify Nb Iterations */
                 case 'i':
-                    if ((argument[1] >='1') && (argument[1] <='9'))
+                    if ((argument[1] >='0') && (argument[1] <='9'))
                     {
                         int iters = argument[1] - '0';
                         BMK_SetNbIterations(iters);
@@ -653,7 +653,7 @@ int main(int argc, char** argv)
         result = benchSample(benchNb);
     else result = benchFiles(argv+filenamesStart, argc-filenamesStart, benchNb);
 
-    if (main_pause) { printf("press enter...\n"); getchar(); }
+    if (main_pause) { int unused; printf("press enter...\n"); unused = getchar(); (void)unused; }
 
     return result;
 }

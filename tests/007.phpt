@@ -31,11 +31,11 @@ var_dump(bin2hex(\Zstd\compress($smallstring) ));
 ===Done===
 --EXPECT--
 *** Compression ***
-string(32) "ba1989dbe63fe0d4dfa87ec5cb95dbff"
+string(32) "dc907c7a58553cdf264b22c326ac602c"
 bool(true)
 *** Compression ***
-string(74) "fd2fb51c40001b4120736d616c6c20737472696e6720746f20636f6d70726573730ac00000"
+string(74) "fd2fb51e40001b4120736d616c6c20737472696e6720746f20636f6d70726573730ac00000"
 bool(true)
 *** Testing with no specified compression ***
-string(74) "fd2fb51c40001b4120736d616c6c20737472696e6720746f20636f6d70726573730ac00000"
+string(74) "fd2fb51e40001b4120736d616c6c20737472696e6720746f20636f6d70726573730ac00000"
 ===Done===

@@ -114,7 +114,7 @@ ZEND_FUNCTION(zstd_uncompress)
     size_t in_size = block_size + BLOCK_HEADER_SIZE;
     size_t out_size = 4 * block_size;
     size_t read, size;
-    ZSTD_cctx_t dctx;
+    ZSTD_Dctx *dctx;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z", &data) == FAILURE) {
