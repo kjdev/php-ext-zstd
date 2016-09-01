@@ -26,7 +26,14 @@ PHP_ARG_ENABLE(zstd, whether to enable zstd support,
 
 if test "$PHP_ZSTD" != "no"; then
 
-  PHP_NEW_EXTENSION(zstd, zstd.c zstd/lib/zstd.c, $ext_shared)
+  ZSTD_COMMON_SOURCES="zstd/lib/common/entropy_common.c zstd/lib/common/fse_decompress.c zstd/lib/common/xxhash.c zstd/lib/common/zstd_common.c"
+  ZSTD_COMPRESS_SOURCES="zstd/lib/compress/fse_compress.c zstd/lib/compress/huf_compress.c zstd/lib/compress/zbuff_compress.c zstd/lib/compress/zstd_compress.c"
+  ZSTD_DECOMPRESS_SOURCES="zstd/lib/decompress/huf_decompress.c zstd/lib/decompress/zbuff_decompress.c zstd/lib/decompress/zstd_decompress.c"
+
+  PHP_ADD_INCLUDE(zstd/lib/common)
+  PHP_ADD_INCLUDE(zstd/lib)
+
+  PHP_NEW_EXTENSION(zstd, zstd.c $ZSTD_COMMON_SOURCES $ZSTD_COMPRESS_SOURCES $ZSTD_DECOMPRESS_SOURCES, $ext_shared)
 
   ifdef([PHP_INSTALL_HEADERS],
   [

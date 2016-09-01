@@ -42,8 +42,7 @@
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
-#include "zstd/lib/zstd.h"
-#include "zstd/lib/zstd_static.h"
+#include "zstd.h"
 
 #define FRAME_HEADER_SIZE 5
 #define BLOCK_HEADER_SIZE 3
@@ -82,7 +81,7 @@ ZEND_FUNCTION(zstd_compress)
         RETURN_FALSE;
     }
 
-    result = ZSTD_compress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data));
+    result = ZSTD_compress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data), 1);
 
     if (ZSTD_isError(result)) {
         RETVAL_FALSE;
@@ -102,19 +101,9 @@ ZEND_FUNCTION(zstd_compress)
 ZEND_FUNCTION(zstd_uncompress)
 {
     zval *data;
-#if ZEND_MODULE_API_NO >= 20141001
-    smart_string decomp = {0};
-#else
-    smart_str decomp = {0};
-#endif
-    char *input;
-    char header[MAX_HEADER_SIZE];
-    char *in, *out, *op, *end;
-    uint32_t block_size = 128 * (1 << 10);
-    size_t in_size = block_size + BLOCK_HEADER_SIZE;
-    size_t out_size = 4 * block_size;
-    size_t read, size;
-    ZSTD_Dctx *dctx;
+    unsigned long long size;
+    size_t result;
+    void *output;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z", &data) == FAILURE) {
@@ -127,94 +116,28 @@ ZEND_FUNCTION(zstd_uncompress)
         RETURN_FALSE;
     }
 
-    input = Z_STRVAL_P(data);
-
-    dctx = ZSTD_createDCtx();
-
-    /* check header */
-    read = ZSTD_nextSrcSizeToDecompress(dctx);
-    if (read > MAX_HEADER_SIZE) {
-        zend_error(E_WARNING,
-                   "zstd_uncompress: not enough memory to read header");
-        ZSTD_freeDCtx(dctx);
+    size = ZSTD_getDecompressedSize(Z_STRVAL_P(data), Z_STRLEN_P(data));
+    output = emalloc(size);
+    if (!output) {
+        zend_error(E_WARNING, "zstd_uncompress: memory error");
         RETURN_FALSE;
     }
 
-    memcpy(header, input, read);
-    input += read;
+    result = ZSTD_decompress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data));
 
-    size = ZSTD_decompressContinue(dctx, NULL, 0, header, read);
-    if (ZSTD_isError(size)) {
-        zend_error(E_WARNING, "zstd_uncompress: decoding header error");
-        ZSTD_freeDCtx(dctx);
-        RETURN_FALSE;
-    }
-
-    /* allocate memory */
-    in = (char *)emalloc(in_size);
-    if (!in) {
-        zend_error(E_WARNING, "zstd_compress: allocation memory error");
-        ZSTD_freeDCtx(dctx);
-        RETURN_FALSE;
-    }
-
-    out = (char *)emalloc(out_size);
-    if (!out) {
-        zend_error(E_WARNING, "zstd_compress: allocation memory error");
-        efree(in);
-        ZSTD_freeDCtx(dctx);
-        RETURN_FALSE;
-    }
-
-    op = out;
-    end = out + out_size;
-
-    /* decompression loop */
-    read = ZSTD_nextSrcSizeToDecompress(dctx);
-    while (read) {
-        size_t read_size, decoded_size;
-
-        memcpy(in, input, read);
-        input += read;
-        read_size = read;
-
-        decoded_size = ZSTD_decompressContinue(dctx, op, end - op,
-                                               in, read_size);
-        if (decoded_size) {
-#if ZEND_MODULE_API_NO >= 20141001
-            smart_string_appendl(&decomp, op, decoded_size);
-#else
-            smart_str_appendl(&decomp, op, decoded_size);
-#endif
-            op += decoded_size;
-            if (op == end) {
-                op = out;
-            }
-        }
-
-        read = ZSTD_nextSrcSizeToDecompress(dctx);
-    }
-
-    efree(in);
-    efree(out);
-
-    ZSTD_freeDCtx(dctx);
-
-    if (decomp.len) {
-#if ZEND_MODULE_API_NO >= 20141001
-        RETVAL_STRINGL(decomp.c, decomp.len);
-#else
-        RETVAL_STRINGL(decomp.c, decomp.len, 1);
-#endif
-    } else {
+    if (ZSTD_isError(result)) {
         RETVAL_FALSE;
+    } else if (result <= 0) {
+        RETVAL_FALSE;
+    } else {
+#if ZEND_MODULE_API_NO >= 20141001
+        RETVAL_STRINGL(output, result);
+#else
+        RETVAL_STRINGL(output, result, 1);
+#endif
     }
 
-#if ZEND_MODULE_API_NO >= 20141001
-    smart_string_free(&decomp);
-#else
-    smart_str_free(&decomp);
-#endif
+    efree(output);
 }
 
 

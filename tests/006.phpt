@@ -20,8 +20,6 @@ var_dump($output);
 *** Compress and Uncompress ***
 bool(true)
 *** Uncompress ***
-
-Warning: zstd_uncompress: decoding header error in %s on line %d
 bool(false)
 bool(false)
 ===Done===
