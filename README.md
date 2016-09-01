@@ -2,13 +2,15 @@
 
 [![Build Status](https://secure.travis-ci.org/kjdev/php-ext-zstd.png?branch=master)](https://travis-ci.org/kjdev/php-ext-zstd)
 
-This extension allows Zstd.
+This extension allows Zstandard.
 
-Documentation for Zstd can be found at [» https://github.com/Cyan4973/zstd](https://github.com/Cyan4973/zstd).
+Documentation for Zstandard can be found at [» https://github.com/facebook/zstd](https://github.com/facebook/zstd).
+
 
 ## Build
 
 ``` bash
+% git clone --recursive --depth=1 https://github.com/kjdev/php-ext-zstd.git
 % phpize
 % ./configure
 % make
@@ -25,16 +27,16 @@ extension=zstd.so
 
 ## Function
 
-* zstd\_compress — Zstd compression
-* zstd\_uncompress — Zstd decompression
+* zstd\_compress — Zstandard compression
+* zstd\_uncompress — Zstandard decompression
 
-### zstd\_compress — Zstd compression
+### zstd\_compress — Zstandard compression
 
 #### Description
 
 string **zstd\_compress** ( string _$data_ )
 
-Zstd compression.
+Zstandard compression.
 
 #### Pameters
 
@@ -47,13 +49,13 @@ Zstd compression.
 Returns the compressed data or FALSE if an error occurred.
 
 
-### zstd\_uncompress — Zstd decompression
+### zstd\_uncompress — Zstandard decompression
 
 #### Description
 
 string **zstd\_uncompress** ( string _$data_ )
 
-Zstd decompression.
+Zstandard decompression.
 
 #### Pameters
 
