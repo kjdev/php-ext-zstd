@@ -77,7 +77,7 @@ Returns the decompressed data or FALSE if an error occurred.
 ```
 Namespace Zstd;
 
-function compress( $data )
+function compress( $data [, $level = 3 ] )
 function uncompress( $data )
 ```
 
