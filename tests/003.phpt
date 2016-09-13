@@ -6,7 +6,8 @@ zstd_compress(): variation
 include(dirname(__FILE__) . '/data.inc');
 
 echo "*** Testing multiple compression ***", PHP_EOL;
-$output = zstd_compress($data);
+$level = 1;
+$output = zstd_compress($data, $level);
 var_dump(md5($output));
 var_dump(md5(zstd_compress($output)));
 

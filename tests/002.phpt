@@ -20,7 +20,7 @@ var_dump(zstd_compress($testclass));
 --EXPECTF--
 *** Testing zstd_compress() function with Zero arguments ***
 
-Warning: zstd_compress() expects exactly 1 parameter, 0 given in %s on line %d
+Warning: zstd_compress() expects at least 1 parameter, 0 given in %s on line %d
 bool(false)
 *** Testing with incorrect parameters ***
 

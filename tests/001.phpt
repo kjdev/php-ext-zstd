@@ -9,21 +9,22 @@ include(dirname(__FILE__) . '/data.inc');
 $smallstring = "A small string to compress\n";
 
 
-// Calling gzcompress() with all possible arguments
+// Calling zstd_compress() with all possible arguments
+$level = 1;
 
 // Compressing a big string
 echo "*** Compression ***", PHP_EOL;
-$output = zstd_compress($data);
+$output = zstd_compress($data, $level);
 var_dump(md5($output));
 var_dump(zstd_uncompress($output) === $data);
 
 // Compressing a smaller string
 echo "*** Compression ***", PHP_EOL;
-$output = zstd_compress($smallstring);
+$output = zstd_compress($smallstring, $level);
 var_dump(bin2hex($output));
 var_dump(zstd_uncompress($output) === $smallstring);
 
-// Calling gzcompress() with mandatory arguments
+// Calling zstd_compress() with mandatory arguments
 echo "*** Testing with no specified compression ***", PHP_EOL;
 var_dump(bin2hex(zstd_compress($smallstring) ));
 

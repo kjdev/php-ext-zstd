@@ -48,30 +48,45 @@
 #define BLOCK_HEADER_SIZE 3
 #define MAX_HEADER_SIZE FRAME_HEADER_SIZE+3
 
+#define DEFAULT_COMPRESS_LEVEL 3
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, level)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
 ZEND_END_ARG_INFO()
 
-
 ZEND_FUNCTION(zstd_compress)
 {
     zval *data;
     char *output;
     size_t len, size, result;
+    long level = DEFAULT_COMPRESS_LEVEL;
+    long maxLevel = (long)ZSTD_maxCLevel();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                              "z", &data) == FAILURE) {
+                              "z|l", &data, &level) == FAILURE) {
         RETURN_FALSE;
     }
 
     if (Z_TYPE_P(data) != IS_STRING) {
         zend_error(E_WARNING, "zstd_compress: expects parameter to be string.");
         RETURN_FALSE;
+    }
+
+    if (level > maxLevel || level < 0) {
+      zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
+                 " must be within 1..%d", level, maxLevel);
+      RETURN_FALSE;
+    } else if (level == 0) {
+#if ZEND_MODULE_API_NO >= 20141001
+      RETURN_STRINGL(Z_STRVAL_P(data), Z_STRLEN_P(data));
+#else
+      RETURN_STRINGL(Z_STRVAL_P(data), Z_STRLEN_P(data), 1);
+#endif
     }
 
     size = ZSTD_compressBound(Z_STRLEN_P(data));
@@ -81,7 +96,8 @@ ZEND_FUNCTION(zstd_compress)
         RETURN_FALSE;
     }
 
-    result = ZSTD_compress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data), 1);
+    result = ZSTD_compress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data),
+                           level);
 
     if (ZSTD_isError(result)) {
         RETVAL_FALSE;

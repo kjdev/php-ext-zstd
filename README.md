@@ -34,7 +34,7 @@ extension=zstd.so
 
 #### Description
 
-string **zstd\_compress** ( string _$data_ )
+string **zstd\_compress** ( string _$data_ [, int _$level_ = 3 ] )
 
 Zstandard compression.
 
@@ -43,6 +43,11 @@ Zstandard compression.
 * _data_
 
   The string to compress.
+
+* _level_
+
+  The level of compression (1-22).
+  (Defaults to 3, 0 for no compression)
 
 #### Return Values
 
