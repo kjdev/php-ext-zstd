@@ -59,6 +59,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_usingcdict, 0, 0, 1)
+    ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, dictBuffer)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_decompress_usingcdict, 0, 0, 1)
+    ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, dictBuffer)
+ZEND_END_ARG_INFO()
+
 ZEND_FUNCTION(zstd_compress)
 {
     zval *data;
@@ -156,6 +166,105 @@ ZEND_FUNCTION(zstd_uncompress)
     efree(output);
 }
 
+ZEND_FUNCTION(zstd_compress_usingcdict)
+{
+    zval *data, *dictBuffer;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+                              "z|z", &data, &dictBuffer) == FAILURE) {
+        RETURN_FALSE;
+    }
+    if (Z_TYPE_P(data) != IS_STRING) {
+        zend_error(E_WARNING, "zstd_compress_usingcdict: expects the first parameter to be string.");
+        RETURN_FALSE;
+    }
+    if (Z_TYPE_P(dictBuffer) != IS_STRING) {
+        zend_error(E_WARNING, "zstd_compress_usingcdict: expects the second parameter to be string.");
+        RETURN_FALSE;
+    }
+
+    size_t const cBuffSize = ZSTD_compressBound(Z_STRLEN_P(data));
+    void* const cBuff = emalloc(cBuffSize);
+    if (!cBuff) {
+        zend_error(E_WARNING, "zstd_compress_usingcdict: memory error");
+        RETURN_FALSE;
+    }
+    ZSTD_CCtx* const cctx = ZSTD_createCCtx();
+    if (cctx == NULL) {
+        zend_error(E_WARNING, "ZSTD_createCCtx() error");
+        RETURN_FALSE;
+    }
+    ZSTD_CDict* const cdict = ZSTD_createCDict(Z_STRVAL_P(dictBuffer), Z_STRLEN_P(dictBuffer),
+        DEFAULT_COMPRESS_LEVEL);
+    if (!cdict) {
+        zend_error(E_WARNING, "ZSTD_createCDict() error");
+        RETURN_FALSE;
+    }
+    size_t const cSize = ZSTD_compress_usingCDict(cctx, cBuff, cBuffSize,
+        Z_STRVAL_P(data), Z_STRLEN_P(data), cdict);
+    if (ZSTD_isError(cSize)) {
+        zend_error(E_WARNING, "zstd_compress_usingcdict: %s", ZSTD_getErrorName(cSize));
+        RETURN_FALSE;
+    }
+    ZSTD_freeCCtx(cctx);
+
+#if ZEND_MODULE_API_NO >= 20141001
+    RETVAL_STRINGL(cBuff, cSize);
+#else
+    RETVAL_STRINGL(cBuff, cSize, 1);
+#endif
+
+    efree(cBuff);
+}
+
+ZEND_FUNCTION(zstd_decompress_usingcdict)
+{
+    zval *data, *dictBuffer;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+                              "z|z", &data, &dictBuffer) == FAILURE) {
+        RETURN_FALSE;
+    }
+    if (Z_TYPE_P(data) != IS_STRING) {
+        zend_error(E_WARNING, "zstd_decompress_usingcdict: expects the first parameter to be string.");
+        RETURN_FALSE;
+    }
+    if (Z_TYPE_P(dictBuffer) != IS_STRING) {
+        zend_error(E_WARNING, "zstd_decompress_usingcdict: expects the second parameter to be string.");
+        RETURN_FALSE;
+    }
+
+    unsigned long long const rSize = ZSTD_getDecompressedSize(Z_STRVAL_P(data), Z_STRLEN_P(data));
+    if (rSize == 0) {
+        RETURN_FALSE;
+    }
+    void* const rBuff = emalloc((size_t)rSize);
+    ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+    if (dctx == NULL) {
+        zend_error(E_WARNING, "ZSTD_createDCtx() error");
+        RETURN_FALSE;
+    }
+    ZSTD_DDict* const ddict = ZSTD_createDDict(Z_STRVAL_P(dictBuffer), Z_STRLEN_P(dictBuffer));
+    if (!ddict) {
+        zend_error(E_WARNING, "ZSTD_createDDict() error");
+        RETURN_FALSE;
+    }
+    size_t const dSize = ZSTD_decompress_usingDDict(dctx, rBuff, rSize,
+        Z_STRVAL_P(data), Z_STRLEN_P(data), ddict);
+    if (dSize != rSize) {
+        zend_error(E_WARNING, "zstd_decompress_usingcdict: %s", ZSTD_getErrorName(dSize));
+        RETURN_FALSE;
+    }
+    ZSTD_freeDCtx(dctx);
+
+#if ZEND_MODULE_API_NO >= 20141001
+    RETVAL_STRINGL(rBuff, rSize);
+#else
+    RETVAL_STRINGL(rBuff, rSize, 1);
+#endif
+
+    efree(rBuff);
+}
 
 ZEND_MINFO_FUNCTION(zstd)
 {
@@ -172,10 +281,16 @@ ZEND_MINFO_FUNCTION(zstd)
 static zend_function_entry zstd_functions[] = {
     ZEND_FE(zstd_compress, arginfo_zstd_compress)
     ZEND_FE(zstd_uncompress, arginfo_zstd_uncompress)
+    ZEND_FE(zstd_compress_usingcdict, arginfo_zstd_compress_usingcdict)
+    ZEND_FE(zstd_decompress_usingcdict, arginfo_zstd_decompress_usingcdict)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, compress,
                    zstd_compress, arginfo_zstd_compress)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress,
                    zstd_uncompress, arginfo_zstd_uncompress)
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, compress_usingcdict,
+                   zstd_compress_usingcdict, arginfo_zstd_compress_usingcdict)
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
+                   zstd_decompress_usingcdict, arginfo_zstd_decompress_usingcdict)
     ZEND_FE_END
 };
 
