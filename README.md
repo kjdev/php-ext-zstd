@@ -29,6 +29,8 @@ extension=zstd.so
 
 * zstd\_compress — Zstandard compression
 * zstd\_uncompress — Zstandard decompression
+* zstd\_compress\_dict — Zstandard compression using a digested dictionary
+* zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
 
 ### zstd\_compress — Zstandard compression
 
@@ -62,6 +64,8 @@ string **zstd\_uncompress** ( string _$data_ )
 
 Zstandard decompression.
 
+> Alias: zstd\_decompress
+
 #### Pameters
 
 * _data_
@@ -72,6 +76,58 @@ Zstandard decompression.
 
 Returns the decompressed data or FALSE if an error occurred.
 
+
+### zstd\_compress\_dict — Zstandard compression using a digested dictionary
+
+#### Description
+
+string **zstd\_compress\_dict** ( string _$data_ , string _$dict_ )
+
+Zstandard compression using a digested dictionary.
+
+> Alias: zstd\_compress\_usingcdict
+
+#### Pameters
+
+* _data_
+
+  The string to compress.
+
+* _dict_
+
+  The Dictionary data.
+
+#### Return Values
+
+Returns the compressed data or FALSE if an error occurred.
+
+
+### zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
+
+#### Description
+
+string **zstd\_uncompress\_dict** ( string _$data_ , string _$dict_ )
+
+Zstandard decompression using a digested dictionary.
+
+> Alias: zstd\_dempress\_dict,
+> zstd\_unmpress\_usingcdict, zstd\_decompress\_usingcdict
+
+#### Pameters
+
+* _data_
+
+  The compressed string.
+
+* _dict_
+
+  The Dictionary data.
+
+#### Return Values
+
+Returns the decompressed data or FALSE if an error occurred.
+
+
 ## Namespace
 
 ```
@@ -79,10 +135,12 @@ Namespace Zstd;
 
 function compress( $data [, $level = 3 ] )
 function uncompress( $data )
+function compress_dist ( $data, $dict )
+function uncompress_dict ( $data, $dict )
 ```
 
-`zstd_compress` and `zstd_uncompress` function alias.
-
+`zstd_compress`, `zstd_uncompress`, `zstd_compress_dict` and
+`zstd_uncompress_dict` function alias.
 
 ## Examples
 
