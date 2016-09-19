@@ -135,7 +135,7 @@ Namespace Zstd;
 
 function compress( $data [, $level = 3 ] )
 function uncompress( $data )
-function compress_dist ( $data, $dict )
+function compress_dict ( $data, $dict )
 function uncompress_dict ( $data, $dict )
 ```
 
