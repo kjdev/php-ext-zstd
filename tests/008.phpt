@@ -39,19 +39,19 @@ check_compress($data, 0);
 7 -- 1803 -- true
 8 -- 1803 -- true
 9 -- 1803 -- true
-10 -- 1798 -- true
-11 -- 1794 -- true
-12 -- 1786 -- true
-13 -- 1786 -- true
-14 -- 1786 -- true
-15 -- 1786 -- true
-16 -- 1786 -- true
-17 -- 1786 -- true
-18 -- 1786 -- true
-19 -- 1786 -- true
-20 -- 1786 -- true
-21 -- 1786 -- true
-22 -- 1786 -- true
+10 -- 1803 -- true
+11 -- 1800 -- true
+12 -- 1796 -- true
+13 -- 1796 -- true
+14 -- 1796 -- true
+15 -- 1796 -- true
+16 -- 1796 -- true
+17 -- 1796 -- true
+18 -- 1796 -- true
+19 -- 1796 -- true
+20 -- 1796 -- true
+21 -- 1796 -- true
+22 -- 1796 -- true
 *** Invalid Compression Level ***
 
 Warning: zstd_compress: compression level (100) must be within 1..22 in %s on line %d
