@@ -303,6 +303,8 @@ static zend_function_entry zstd_functions[] = {
     ZEND_FALIAS(zstd_decompress_usingcdict,
                 zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
 
+// PHP 5.3+
+#if ZEND_MODULE_API_NO >= 20090626
     ZEND_NS_FALIAS(PHP_ZSTD_NS, compress,
                    zstd_compress, arginfo_zstd_compress)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress,
@@ -321,6 +323,7 @@ static zend_function_entry zstd_functions[] = {
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
+#endif
     ZEND_FE_END
 };
 
