@@ -74,8 +74,8 @@ ZEND_FUNCTION(zstd_compress)
     zval *data;
     char *output;
     size_t len, size, result;
-    long level = DEFAULT_COMPRESS_LEVEL;
-    long maxLevel = (long)ZSTD_maxCLevel();
+    uint16_t level = DEFAULT_COMPRESS_LEVEL;
+    uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z|l", &data, &level) == FAILURE) {
@@ -127,7 +127,7 @@ ZEND_FUNCTION(zstd_compress)
 ZEND_FUNCTION(zstd_uncompress)
 {
     zval *data;
-    unsigned long long size;
+    uint64_t size;
     size_t result;
     void *output;
 
