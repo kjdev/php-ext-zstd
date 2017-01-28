@@ -73,7 +73,7 @@ ZEND_FUNCTION(zstd_compress)
 {
     zval *data;
     char *output;
-    size_t len, size, result;
+    size_t size, result;
     uint32_t level = DEFAULT_COMPRESS_LEVEL;
     uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
