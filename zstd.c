@@ -74,7 +74,7 @@ ZEND_FUNCTION(zstd_compress)
     zval *data;
     char *output;
     size_t size, result;
-    uint32_t level = DEFAULT_COMPRESS_LEVEL;
+    long level = DEFAULT_COMPRESS_LEVEL;
     uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -88,7 +88,7 @@ ZEND_FUNCTION(zstd_compress)
     }
 
     if (level > maxLevel || level < 0) {
-      zend_error(E_WARNING, "zstd_compress: compression level (%d)"
+      zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
                  " must be within 1..%d", level, maxLevel);
       RETURN_FALSE;
     } else if (level == 0) {
