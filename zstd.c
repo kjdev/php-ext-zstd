@@ -73,9 +73,9 @@ ZEND_FUNCTION(zstd_compress)
 {
     zval *data;
     char *output;
-    size_t len, size, result;
+    size_t size, result;
     long level = DEFAULT_COMPRESS_LEVEL;
-    long maxLevel = (long)ZSTD_maxCLevel();
+    uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z|l", &data, &level) == FAILURE) {
@@ -127,7 +127,7 @@ ZEND_FUNCTION(zstd_compress)
 ZEND_FUNCTION(zstd_uncompress)
 {
     zval *data;
-    unsigned long long size;
+    uint64_t size;
     size_t result;
     void *output;
 
@@ -303,6 +303,8 @@ static zend_function_entry zstd_functions[] = {
     ZEND_FALIAS(zstd_decompress_usingcdict,
                 zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
 
+// PHP 5.3+
+#if ZEND_MODULE_API_NO >= 20090626
     ZEND_NS_FALIAS(PHP_ZSTD_NS, compress,
                    zstd_compress, arginfo_zstd_compress)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress,
@@ -321,7 +323,8 @@ static zend_function_entry zstd_functions[] = {
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
-    ZEND_FE_END
+#endif
+    {NULL, NULL, NULL}
 };
 
 zend_module_entry zstd_module_entry = {
