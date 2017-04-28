@@ -24,5 +24,5 @@ check_compress_dict($data, $dictionary);
 *** Data size ***
 3547
 *** Dictionary Compression ***
-142 -- 2047 -- true
+142 -- 1973 -- true
 ===Done===
