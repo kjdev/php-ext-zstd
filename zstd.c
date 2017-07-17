@@ -199,14 +199,16 @@ ZEND_FUNCTION(zstd_compress_dict)
     }
     ZSTD_CDict* const cdict = ZSTD_createCDict(Z_STRVAL_P(dictBuffer),
                                                Z_STRLEN_P(dictBuffer),
-        DEFAULT_COMPRESS_LEVEL);
+                                               DEFAULT_COMPRESS_LEVEL);
     if (!cdict) {
         efree(cBuff);
         zend_error(E_WARNING, "ZSTD_createCDict() error");
         RETURN_FALSE;
     }
     size_t const cSize = ZSTD_compress_usingCDict(cctx, cBuff, cBuffSize,
-        Z_STRVAL_P(data), Z_STRLEN_P(data), cdict);
+                                                  Z_STRVAL_P(data),
+                                                  Z_STRLEN_P(data),
+                                                  cdict);
     if (ZSTD_isError(cSize)) {
         efree(cBuff);
         zend_error(E_WARNING, "zstd_compress_dict: %s",
@@ -268,7 +270,9 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         RETURN_FALSE;
     }
     size_t const dSize = ZSTD_decompress_usingDDict(dctx, rBuff, rSize,
-        Z_STRVAL_P(data), Z_STRLEN_P(data), ddict);
+                                                    Z_STRVAL_P(data),
+                                                    Z_STRLEN_P(data),
+                                                    ddict);
     if (dSize != rSize) {
         efree(rBuff);
         zend_error(E_WARNING, "zstd_uncompress_dict: %s",
