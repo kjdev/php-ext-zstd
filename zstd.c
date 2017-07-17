@@ -281,9 +281,7 @@ ZEND_MINFO_FUNCTION(zstd)
     php_info_print_table_start();
     php_info_print_table_row(2, "Zstd support", "enabled");
     php_info_print_table_row(2, "Extension Version", PHP_ZSTD_EXT_VERSION);
-    snprintf(buffer, 128, "%d.%d.%d",
-             ZSTD_VERSION_MAJOR, ZSTD_VERSION_MINOR, ZSTD_VERSION_RELEASE);
-    php_info_print_table_row(2, "Interface Version", buffer);
+    php_info_print_table_row(2, "Interface Version", ZSTD_VERSION_STRING);
     php_info_print_table_end();
 }
 
