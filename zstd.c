@@ -216,6 +216,7 @@ ZEND_FUNCTION(zstd_compress_dict)
         RETURN_FALSE;
     }
     ZSTD_freeCCtx(cctx);
+    ZSTD_freeCDict(cdict);
 
 #if ZEND_MODULE_API_NO >= 20141001
     RETVAL_STRINGL(cBuff, cSize);
@@ -280,6 +281,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         RETURN_FALSE;
     }
     ZSTD_freeDCtx(dctx);
+    ZSTD_freeDDict(ddict);
 
 #if ZEND_MODULE_API_NO >= 20141001
     RETVAL_STRINGL(rBuff, rSize);
