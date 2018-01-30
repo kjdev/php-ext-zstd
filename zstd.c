@@ -294,7 +294,6 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 
 ZEND_MINFO_FUNCTION(zstd)
 {
-    char buffer[128];
     php_info_print_table_start();
     php_info_print_table_row(2, "Zstd support", "enabled");
     php_info_print_table_row(2, "Extension Version", PHP_ZSTD_EXT_VERSION);
