@@ -24,7 +24,7 @@
 #ifndef PHP_ZSTD_H
 #define PHP_ZSTD_H
 
-#define PHP_ZSTD_EXT_VERSION "0.4.11"
+#define PHP_ZSTD_EXT_VERSION "0.4.12"
 #define PHP_ZSTD_NS "Zstd"
 
 extern zend_module_entry zstd_module_entry;
