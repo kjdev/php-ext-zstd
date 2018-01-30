@@ -22,3 +22,5 @@ run-tests.php
 /build
 /include
 /modules
+ltmain.sh.backup
+tmp-php.ini

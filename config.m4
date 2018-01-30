@@ -24,16 +24,39 @@ fi
 PHP_ARG_ENABLE(zstd, whether to enable zstd support,
 [  --enable-zstd           Enable zstd support])
 
+PHP_ARG_WITH(libzstd, whether to use system zstd library,
+[  --with-libzsd           Use system zstd library], no, no)
+
 if test "$PHP_ZSTD" != "no"; then
 
-  ZSTD_COMMON_SOURCES="zstd/lib/common/entropy_common.c zstd/lib/common/error_private.c zstd/lib/common/fse_decompress.c zstd/lib/common/pool.c zstd/lib/common/threading.c zstd/lib/common/xxhash.c zstd/lib/common/zstd_common.c"
-  ZSTD_COMPRESS_SOURCES="zstd/lib/compress/fse_compress.c zstd/lib/compress/huf_compress.c zstd/lib/compress/zstd_compress.c zstd/lib/compress/zstdmt_compress.c"
-  ZSTD_DECOMPRESS_SOURCES="zstd/lib/decompress/huf_decompress.c zstd/lib/decompress/zstd_decompress.c"
+  if test "$PHP_LIBZSTD" != "no"; then
+    AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
-  PHP_ADD_INCLUDE(zstd/lib/common)
-  PHP_ADD_INCLUDE(zstd/lib)
+    AC_MSG_CHECKING(for libzstd)
+    if test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libzstd; then
+      if $PKG_CONFIG libzstd --atleast-version 1; then
+        LIBZSTD_CFLAGS=`$PKG_CONFIG libzstd --cflags`
+        LIBZSTD_LIBDIR=`$PKG_CONFIG libzstd --libs`
+        LIBZSTD_VERSON=`$PKG_CONFIG libzstd --modversion`
+        AC_MSG_RESULT(from pkgconfig: version $LIBZSTD_VERSON)
+      else
+        AC_MSG_ERROR(system libzstd is too old)
+      fi
+    else
+      AC_MSG_ERROR(pkg-config not found)
+    fi
+    PHP_EVAL_LIBLINE($LIBZSTD_LIBDIR, ZSTD_SHARED_LIBADD)
+    PHP_EVAL_INCLINE($LIBZSTD_CFLAGS)
+  else
+    ZSTD_COMMON_SOURCES="zstd/lib/common/entropy_common.c zstd/lib/common/error_private.c zstd/lib/common/fse_decompress.c zstd/lib/common/pool.c zstd/lib/common/threading.c zstd/lib/common/xxhash.c zstd/lib/common/zstd_common.c"
+    ZSTD_COMPRESS_SOURCES="zstd/lib/compress/fse_compress.c zstd/lib/compress/huf_compress.c zstd/lib/compress/zstd_compress.c zstd/lib/compress/zstdmt_compress.c"
+    ZSTD_DECOMPRESS_SOURCES="zstd/lib/decompress/huf_decompress.c zstd/lib/decompress/zstd_decompress.c"
 
+    PHP_ADD_INCLUDE(zstd/lib/common)
+    PHP_ADD_INCLUDE(zstd/lib)
+  fi
   PHP_NEW_EXTENSION(zstd, zstd.c $ZSTD_COMMON_SOURCES $ZSTD_COMPRESS_SOURCES $ZSTD_DECOMPRESS_SOURCES, $ext_shared)
+  PHP_SUBST(ZSTD_SHARED_LIBADD)
 
   ifdef([PHP_INSTALL_HEADERS],
   [
@@ -45,7 +68,7 @@ fi
 
 dnl coverage
 PHP_ARG_ENABLE(coverage, whether to enable coverage support,
-[  --enable-coverage     Enable coverage support], no, no)
+[  --enable-coverage       Enable coverage support], no, no)
 
 if test "$PHP_COVERAGE" != "no"; then
     EXTRA_CFLAGS="--coverage"
