@@ -7,7 +7,7 @@ This extension allows Zstandard.
 Documentation for Zstandard can be found at [» https://github.com/facebook/zstd](https://github.com/facebook/zstd).
 
 
-## Build
+## Build from sources
 
 ``` bash
 % git clone --recursive --depth=1 https://github.com/kjdev/php-ext-zstd.git
@@ -16,6 +16,19 @@ Documentation for Zstandard can be found at [» https://github.com/facebook/zstd
 % make
 % make install
 ```
+
+To use the system library
+
+``` bash
+% ./configure --with-libzstd
+```
+
+## Distribution binary packages
+
+### Fedora / CentOS / RHEL
+
+RPM packages of this extension are available in [» Remi's RPM repository](https://rpms.remirepo.net/) and are named **php-zstd**.
+
 
 ## Configration
 
