@@ -64,6 +64,9 @@ Zstandard compression.
   The level of compression (1-22).
   (Defaults to 3, 0 for no compression)
 
+  A value smaller than 0 means a faster compression level.
+  (Zstandard library 1.3.4 or later)
+
 #### Return Values
 
 Returns the compressed data or FALSE if an error occurred.
