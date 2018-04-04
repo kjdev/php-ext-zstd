@@ -87,9 +87,16 @@ ZEND_FUNCTION(zstd_compress)
         RETURN_FALSE;
     }
 
+
+#if ZSTD_VERSION_NUMBER >= 10304
+    if (level > maxLevel) {
+      zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
+                 " must be within 1..%d or smaller then 0", level, maxLevel);
+#else
     if (level > maxLevel || level < 0) {
       zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
                  " must be within 1..%d", level, maxLevel);
+#endif
       RETURN_FALSE;
     } else if (level == 0) {
 #if ZEND_MODULE_API_NO >= 20141001
