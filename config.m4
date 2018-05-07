@@ -25,7 +25,7 @@ PHP_ARG_ENABLE(zstd, whether to enable zstd support,
 [  --enable-zstd           Enable zstd support])
 
 PHP_ARG_WITH(libzstd, whether to use system zstd library,
-[  --with-libzsd           Use system zstd library], no, no)
+[  --with-libzstd           Use system zstd library], no, no)
 
 if test "$PHP_ZSTD" != "no"; then
 
