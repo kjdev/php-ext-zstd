@@ -15,6 +15,6 @@ var_dump(md5(zstd_compress($output)));
 ===Done===
 --EXPECTF--
 *** Testing multiple compression ***
-string(32) "332567c3885f9745988ec1dcd39c71d0"
-string(32) "ff39afd93f10a2e7ef15a395980ce706"
+string(32) "2852da3dd89b79ac8654def609f4af7c"
+string(32) "68cc81622d0e2e6b6b795fdc5c61bf54"
 ===Done===

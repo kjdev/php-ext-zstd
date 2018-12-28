@@ -33,7 +33,7 @@ var_dump(bin2hex(\Zstd\compress($smallstring) ));
 ===Done===
 --EXPECT--
 *** Compression ***
-string(32) "332567c3885f9745988ec1dcd39c71d0"
+string(32) "2852da3dd89b79ac8654def609f4af7c"
 bool(true)
 *** Compression ***
 string(72) "28b52ffd201bd900004120736d616c6c20737472696e6720746f20636f6d70726573730a"
