@@ -137,6 +137,7 @@ ZEND_FUNCTION(zstd_uncompress)
     uint64_t size;
     size_t result;
     void *output;
+    uint8_t streaming = 0;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z", &data) == FAILURE) {
@@ -149,14 +150,76 @@ ZEND_FUNCTION(zstd_uncompress)
         RETURN_FALSE;
     }
 
-    size = ZSTD_getDecompressedSize(Z_STRVAL_P(data), Z_STRLEN_P(data));
+    size = ZSTD_getFrameContentSize(Z_STRVAL_P(data), Z_STRLEN_P(data));
+    if (size == ZSTD_CONTENTSIZE_ERROR) {
+        zend_error(E_WARNING, "zstd_uncompress: it was not compressed by zstd");
+        RETURN_FALSE;
+    } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        streaming = 1;
+        size = ZSTD_DStreamOutSize();
+    }
+
     output = emalloc(size);
     if (!output) {
         zend_error(E_WARNING, "zstd_uncompress: memory error");
         RETURN_FALSE;
     }
 
-    result = ZSTD_decompress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data));
+    if (!streaming) {
+        result = ZSTD_decompress(output, size,
+                                 Z_STRVAL_P(data), Z_STRLEN_P(data));
+    } else {
+        ZSTD_DStream *stream;
+        ZSTD_inBuffer in = { NULL, 0, 0 };
+        ZSTD_outBuffer out = { NULL, 0, 0 };
+
+        stream = ZSTD_createDStream();
+        if (stream == NULL) {
+            efree(output);
+            zend_error(E_WARNING, "zstd_uncompress: can not create stream");
+            RETURN_FALSE;
+        }
+
+        result = ZSTD_initDStream(stream);
+        if (ZSTD_isError(result)) {
+            efree(output);
+            ZSTD_freeDStream(stream);
+            zend_error(E_WARNING, "zstd_uncompress: can not init stream");
+            RETURN_FALSE;
+        }
+
+        in.src = Z_STRVAL_P(data);
+        in.size = Z_STRLEN_P(data);
+        in.pos = 0;
+
+        out.dst = output;
+        out.size = size;
+        out.pos = 0;
+
+        while (in.pos < in.size) {
+            if (out.pos == out.size) {
+                out.dst = erealloc(out.dst, size);
+                out.size += size;
+            }
+
+            result = ZSTD_decompressStream(stream, &out, &in);
+            if (ZSTD_isError(result)) {
+                efree(output);
+                ZSTD_freeDStream(stream);
+                zend_error(E_WARNING,
+                           "zstd_uncompress: can not decompress stream");
+                RETURN_FALSE;
+            }
+
+            if (result == 0) {
+                break;
+            }
+        }
+
+        result = out.pos;
+
+        ZSTD_freeDStream(stream);
+    }
 
     if (ZSTD_isError(result)) {
         RETVAL_FALSE;

@@ -68,6 +68,10 @@ check_compress($data, 0);
 *** Invalid Compression Level ***
 
 Warning: zstd_compress: compression level (100) must be within 1..22 or smaller then 0 in %s on line %d
-100 -- 0 -- false
-0 -- 3547 -- false
+100 -- 0 -- 
+Warning: zstd_uncompress: it was not compressed by zstd in %s
+false
+0 -- 3547 -- 
+Warning: zstd_uncompress: it was not compressed by zstd in %s
+false
 ===Done===

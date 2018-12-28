@@ -20,6 +20,8 @@ var_dump($output);
 *** Compress and Uncompress ***
 bool(true)
 *** Uncompress ***
+
+Warning: zstd_uncompress: it was not compressed by zstd in %s
 bool(false)
 bool(false)
 ===Done===
