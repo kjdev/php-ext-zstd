@@ -10,6 +10,7 @@ php:
   - 7.0
   - 7.1
   - 7.2
+  - 7.3
 
 env:
   - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
