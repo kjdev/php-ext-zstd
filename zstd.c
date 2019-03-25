@@ -362,6 +362,20 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     efree(rBuff);
 }
 
+ZEND_MINIT_FUNCTION(zstd)
+{
+    REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_MIN",
+                           1,
+                           CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_MAX",
+                           ZSTD_maxCLevel(),
+                           CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_DEFAULT",
+                           DEFAULT_COMPRESS_LEVEL,
+                           CONST_CS | CONST_PERSISTENT);
+    return SUCCESS;
+}
+
 ZEND_MINFO_FUNCTION(zstd)
 {
     php_info_print_table_start();
@@ -417,7 +431,7 @@ zend_module_entry zstd_module_entry = {
 #endif
     "zstd",
     zstd_functions,
-    NULL,
+    ZEND_MINIT(zstd),
     NULL,
     NULL,
     NULL,
