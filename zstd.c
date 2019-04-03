@@ -198,8 +198,9 @@ ZEND_FUNCTION(zstd_uncompress)
 
         while (in.pos < in.size) {
             if (out.pos == out.size) {
-                out.dst = erealloc(out.dst, size);
                 out.size += size;
+                output = erealloc(output, out.size);
+                out.dst = output;
             }
 
             result = ZSTD_decompressStream(stream, &out, &in);
