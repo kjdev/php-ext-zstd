@@ -363,6 +363,352 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     efree(rBuff);
 }
 
+
+typedef struct _php_zstd_stream_data {
+    char *bufin, *bufout;
+    size_t sizein, sizeout;
+    ZSTD_CCtx* cctx;
+    ZSTD_DCtx* dctx;
+    ZSTD_inBuffer input;
+    ZSTD_outBuffer output;
+    php_stream *stream;
+} php_zstd_stream_data;
+
+
+#define STREAM_DATA_FROM_STREAM() \
+    php_zstd_stream_data *self = (php_zstd_stream_data *) stream->abstract
+
+#define STREAM_NAME "compress.zstd"
+
+static int php_zstd_decomp_close(php_stream *stream, int close_handle TSRMLS_DC)
+{
+    STREAM_DATA_FROM_STREAM();
+
+    if (!self) {
+        return EOF;
+    }
+
+    if (close_handle) {
+        if (self->stream) {
+            php_stream_close(self->stream);
+            self->stream = NULL;
+        }
+    }
+
+    ZSTD_freeDCtx(self->dctx);
+    efree(self->bufin);
+    efree(self->bufout);
+    efree(self);
+    stream->abstract = NULL;
+
+    return EOF;
+}
+
+static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
+{
+    size_t x, res;
+    STREAM_DATA_FROM_STREAM();
+
+    if (!self) {
+        return EOF;
+    }
+
+    /* Compress remaining data */
+    if (self->input.size)  {
+        self->input.pos = 0;
+        do {
+            self->output.size = self->sizeout;
+            self->output.pos  = 0;
+            res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
+            if (ZSTD_isError(res)) {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            }
+            php_stream_write(self->stream, self->bufout, self->output.pos);
+        } while (self->input.pos != self->input.size);
+    }
+
+    /* Flush */
+    do {
+        self->output.size = self->sizeout;
+        self->output.pos  = 0;
+        x = ZSTD_endStream(self->cctx, &self->output);
+        if (ZSTD_isError(x)) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(x));
+        }
+        php_stream_write(self->stream, self->bufout, self->output.pos);
+    } while (x > 0);
+
+    if (close_handle) {
+        if (self->stream) {
+            php_stream_close(self->stream);
+            self->stream = NULL;
+        }
+    }
+
+    ZSTD_freeCCtx(self->cctx);
+    efree(self->bufin);
+    efree(self->bufout);
+    efree(self);
+    stream->abstract = NULL;
+
+    return EOF;
+}
+
+
+static int php_zstd_flush(php_stream *stream TSRMLS_DC)
+{
+    return 0;
+}
+
+
+static size_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
+{
+    size_t x, res, ret = 0;
+    STREAM_DATA_FROM_STREAM();
+
+    while (count > 0) {
+        x = self->output.size - self->output.pos;
+        /* enough available */
+        if (x >= count) {
+            memcpy(buf, self->bufout + self->output.pos, count);
+            self->output.pos += count;
+            ret += count;
+            return ret;
+        }
+        /* take remaining from out  */
+        if (x) {
+            memcpy(buf, self->bufout + self->output.pos, x);
+            self->output.pos += x;
+            ret += x;
+            buf += x;
+            count -= x;
+        }
+        /* decompress */
+        if (self->input.pos < self->input.size) {
+            /* for zstd */
+            self->output.pos = 0;
+            self->output.size = self->sizeout;
+            res = ZSTD_decompressStream(self->dctx, &self->output , &self->input);
+            if (ZSTD_isError(res)) {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            }
+            /* for us */
+            self->output.size = self->output.pos;
+            self->output.pos = 0;
+        }  else {
+            /* read */
+            self->input.pos = 0;
+            self->input.size = php_stream_read(self->stream, self->bufin, self->sizein);
+            if (!self->input.size) {
+                /* EOF */
+                count = 0;
+            }
+        }
+    }
+    return ret;
+}
+
+
+static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
+{
+    size_t res, x, ret = 0;
+
+    STREAM_DATA_FROM_STREAM();
+
+    while(count > 0) {
+        /* enough room for full data */
+        if (self->input.size + count < self->sizein) {
+            memcpy(self->bufin + self->input.size, buf, count);
+            self->input.size += count;
+            ret += count;
+            count = 0;
+            break;
+        }
+
+        /* fill input buffer */
+        x = self->sizein - self->input.size;
+        memcpy(self->bufin + self->input.size, buf, x);
+        self->input.size += x;
+        buf += x;
+        count -= x;
+        ret += x;
+
+        /* compress and write */
+        self->input.pos = 0;
+        do {
+            self->output.size = self->sizeout;
+            self->output.pos  = 0;
+            res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
+            if (ZSTD_isError(res)) {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            }
+            php_stream_write(self->stream, self->bufout, self->output.pos);
+        } while (self->input.pos != self->input.size);
+
+        self->input.pos = 0;
+        self->input.size = 0;
+    }
+    return ret;
+}
+
+
+static php_stream_ops php_stream_zstd_read_ops = {
+    NULL,    /* write */
+    php_zstd_decomp_read,
+    php_zstd_decomp_close,
+    php_zstd_flush,
+    STREAM_NAME,
+    NULL,    /* seek */
+    NULL,    /* cast */
+    NULL,    /* stat */
+    NULL      /* set_option */
+};
+
+
+static php_stream_ops php_stream_zstd_write_ops = {
+    php_zstd_comp_write,
+    NULL,    /* read */
+    php_zstd_comp_close,
+    php_zstd_flush,
+    STREAM_NAME,
+    NULL,    /* seek */
+    NULL,    /* cast */
+    NULL,    /* stat */
+    NULL      /* set_option */
+};
+
+
+static php_stream *
+php_stream_zstd_opener(
+    php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+    char *path,
+    char *mode,
+#else
+    const char *path,
+    const char *mode,
+#endif
+    int options,
+#if PHP_MAJOR_VERSION < 7
+    char **opened_path,
+#else
+    zend_string **opened_path,
+#endif
+    php_stream_context *context
+    STREAMS_DC TSRMLS_DC)
+{
+    php_zstd_stream_data *self;
+    int level = ZSTD_CLEVEL_DEFAULT;
+
+    if (strncasecmp(STREAM_NAME, path, sizeof(STREAM_NAME)-1) == 0) {
+        path += sizeof(STREAM_NAME)-1;
+        if (strncmp("://", path, 3) == 0) {
+            path += 3;
+        }
+    }
+
+    if (php_check_open_basedir(path TSRMLS_CC)) {
+        return NULL;
+    }
+
+    if (context) {
+#if PHP_MAJOR_VERSION >= 7
+        zval *tmpzval;
+
+        if (NULL != (tmpzval = php_stream_context_get_option(context, "zstd", "level"))) {
+            level = zval_get_long(tmpzval);
+        }
+#else
+        zval **tmpzval;
+
+        if (php_stream_context_get_option(context, "zstd", "level", &tmpzval) == SUCCESS) {
+            convert_to_long_ex(tmpzval);
+            level = Z_LVAL_PP(tmpzval);
+        }
+#endif
+    }
+
+    if (level > ZSTD_maxCLevel()) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "zstd: compression level (%d) must be less than %d", level, ZSTD_maxCLevel());
+        level = ZSTD_maxCLevel();
+    }
+
+    self = ecalloc(sizeof(*self), 1);
+    self->stream = php_stream_open_wrapper(path, mode, REPORT_ERRORS, NULL);
+    /* File */
+    if (!strcmp(mode, "w") || !strcmp(mode, "wb")) {
+        self->dctx = NULL;
+        self->cctx = ZSTD_createCCtx();
+        if (!self->cctx) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "zstd: compression context failed");
+            php_stream_close(self->stream);
+            efree(self);
+            return NULL;
+        }
+        ZSTD_initCStream(self->cctx, level);
+        self->bufin = emalloc(self->sizein = ZSTD_CStreamInSize());
+        self->bufout = emalloc(self->sizeout = ZSTD_CStreamOutSize());
+        self->input.src  = self->bufin;
+        self->input.pos   = 0;
+        self->input.size  = 0;
+        self->output.dst = self->bufout;
+        self->output.pos  = 0;
+        self->output.size = 0;
+
+        return php_stream_alloc(&php_stream_zstd_write_ops, self, NULL, mode);
+
+    } else if (!strcmp(mode, "r") || !strcmp(mode, "rb")) {
+        self->dctx = ZSTD_createDCtx();
+        if (!self->dctx) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "zstd: compression context failed");
+            php_stream_close(self->stream);
+            efree(self);
+            return NULL;
+        }
+        self->cctx = NULL;
+        self->bufin = emalloc(self->sizein = ZSTD_DStreamInSize());
+        self->bufout = emalloc(self->sizeout = ZSTD_DStreamOutSize());
+        ZSTD_initDStream(self->dctx);
+        self->input.src   = self->bufin;
+        self->input.pos   = 0;
+        self->input.size  = 0;
+        self->output.dst  = self->bufout;
+        self->output.pos  = 0;
+        self->output.size = 0;
+
+        return php_stream_alloc(&php_stream_zstd_read_ops, self, NULL, mode);
+
+    } else {
+        php_error_docref(NULL TSRMLS_CC, E_ERROR, "zstd: invalid open mode");
+    }
+    return NULL;
+}
+
+
+static php_stream_wrapper_ops zstd_stream_wops = {
+    php_stream_zstd_opener,
+    NULL,    /* close */
+    NULL,    /* fstat */
+    NULL,    /* stat */
+    NULL,    /* opendir */
+    STREAM_NAME,
+    NULL,    /* unlink */
+    NULL,    /* rename */
+    NULL,    /* mkdir */
+    NULL    /* rmdir */
+#if PHP_VERSION_ID >= 50400
+    , NULL
+#endif
+};
+
+
+php_stream_wrapper php_stream_zstd_wrapper = {
+    &zstd_stream_wops,
+    NULL,
+    0 /* is_url */
+};
+
+
 ZEND_MINIT_FUNCTION(zstd)
 {
     REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_MIN",
@@ -374,6 +720,9 @@ ZEND_MINIT_FUNCTION(zstd)
     REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_DEFAULT",
                            DEFAULT_COMPRESS_LEVEL,
                            CONST_CS | CONST_PERSISTENT);
+
+    php_register_url_stream_wrapper(STREAM_NAME, &php_stream_zstd_wrapper TSRMLS_CC);
+
     return SUCCESS;
 }
 
