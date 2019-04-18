@@ -1,5 +1,5 @@
 --TEST--
-compress.zstd stream
+compress.zstd streams basic
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');
