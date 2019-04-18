@@ -404,14 +404,10 @@ static int php_zstd_decomp_close(php_stream *stream, int close_handle TSRMLS_DC)
     return EOF;
 }
 
-static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
+static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end TSRMLS_DC)
 {
     size_t x, res;
-    STREAM_DATA_FROM_STREAM();
-
-    if (!self) {
-        return EOF;
-    }
+    int ret = 0;
 
     /* Compress remaining data */
     if (self->input.size)  {
@@ -422,21 +418,51 @@ static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
             res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
             if (ZSTD_isError(res)) {
                 php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+                ret = EOF;
             }
             php_stream_write(self->stream, self->bufout, self->output.pos);
         } while (self->input.pos != self->input.size);
+        self->input.pos = 0;
+        self->input.size = 0;
     }
 
     /* Flush */
     do {
         self->output.size = self->sizeout;
         self->output.pos  = 0;
-        x = ZSTD_endStream(self->cctx, &self->output);
+        if (end) {
+            x = ZSTD_endStream(self->cctx, &self->output);
+        } else {
+            x = ZSTD_flushStream(self->cctx, &self->output);
+        }
         if (ZSTD_isError(x)) {
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(x));
+            ret = EOF;
         }
         php_stream_write(self->stream, self->bufout, self->output.pos);
     } while (x > 0);
+
+    return ret;
+}
+
+
+static int php_zstd_comp_flush(php_stream *stream TSRMLS_DC)
+{
+    STREAM_DATA_FROM_STREAM();
+
+    return php_zstd_comp_flush_or_end(self, 0 TSRMLS_CC);
+}
+
+
+static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
+{
+    STREAM_DATA_FROM_STREAM();
+
+    if (!self) {
+        return EOF;
+    }
+
+    php_zstd_comp_flush_or_end(self, 1 TSRMLS_CC);
 
     if (close_handle) {
         if (self->stream) {
@@ -452,12 +478,6 @@ static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
     stream->abstract = NULL;
 
     return EOF;
-}
-
-
-static int php_zstd_flush(php_stream *stream TSRMLS_DC)
-{
-    return 0;
 }
 
 
@@ -556,12 +576,12 @@ static php_stream_ops php_stream_zstd_read_ops = {
     NULL,    /* write */
     php_zstd_decomp_read,
     php_zstd_decomp_close,
-    php_zstd_flush,
+    NULL,    /* flush */
     STREAM_NAME,
     NULL,    /* seek */
     NULL,    /* cast */
     NULL,    /* stat */
-    NULL      /* set_option */
+    NULL     /* set_option */
 };
 
 
@@ -569,12 +589,12 @@ static php_stream_ops php_stream_zstd_write_ops = {
     php_zstd_comp_write,
     NULL,    /* read */
     php_zstd_comp_close,
-    php_zstd_flush,
+    php_zstd_comp_flush,
     STREAM_NAME,
     NULL,    /* seek */
     NULL,    /* cast */
     NULL,    /* stat */
-    NULL      /* set_option */
+    NULL     /* set_option */
 };
 
 
