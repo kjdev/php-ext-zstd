@@ -24,7 +24,7 @@ $ctx = stream_context_create(
 
 var_dump(file_put_contents('compress.zstd://' . $file, $data, 0, $ctx) == strlen($data));
 var_dump($size2 = filesize($file));
-var_dump($size1 > 1 && $size2 <= $size1);
+var_dump($size2 > 1 && $size2 <= $size1);
 
 
 echo "Decompression\n";
