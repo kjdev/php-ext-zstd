@@ -1,5 +1,9 @@
 --TEST--
 compress.zstd use include_path
+--SKIPIF--
+<?php
+if (!function_exists("hex2bin")) die('skip PHP is too old');
+?>
 --INI--
 include_path={PWD}/inc
 --FILE--
