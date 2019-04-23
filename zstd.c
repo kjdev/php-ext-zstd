@@ -702,6 +702,11 @@ php_stream_zstd_opener(
 
     self = ecalloc(sizeof(*self), 1);
     self->stream = php_stream_open_wrapper(path, mode, REPORT_ERRORS, NULL);
+    if (!self->stream) {
+        efree(self);
+        return NULL;
+    }
+
     /* File */
     if (compress) {
         self->dctx = NULL;
