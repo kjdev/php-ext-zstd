@@ -158,9 +158,23 @@ function uncompress_dict ( $data, $dict )
 `zstd_compress`, `zstd_uncompress`, `zstd_compress_dict` and
 `zstd_uncompress_dict` function alias.
 
+## Streams
+
+Zstd compression and uncompression are available using the
+`compress.zstd://` stream prefix.
+
 ## Examples
 
 ```php
+// Using functions
 $data = zstd_compress('test');
 zstd_uncompress($data);
+
+// Using namespaced functions
+$data = \Zstd\compress('test');
+\Zstd\uncompress($data);
+
+// Using streams
+file_put_contents("compress.zstd:///patch/to/data.zstd", $data);
+readfile("compress.zstd:///patch/to/data.zstd");
 ```
