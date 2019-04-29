@@ -25,9 +25,23 @@ To use the system library
 
 ## Distribution binary packages
 
-### Fedora / CentOS / RHEL
+### Fedora
 
-RPM packages of this extension are available in [» Remi's RPM repository](https://rpms.remirepo.net/) and are named **php-zstd**.
+Fedora users can install the [» php-zstd](https://apps.fedoraproject.org/packages/php-zstd) package from official repository.
+
+``` bash
+dnf install php-zstd
+```
+
+### CentOS / RHEL
+
+CentOS / RHEL (and other clones) users can install the [» php-zstd](https://apps.fedoraproject.org/packages/php-zstd) package from [» EPEL](https://fedoraproject.org/wiki/EPEL) repository.
+
+``` bash
+yum install php-zstd
+```
+
+Other RPM packages of this extension, for other PHP versions, are available in [» Remi's RPM repository](https://rpms.remirepo.net/).
 
 
 ## Configration
