@@ -52,6 +52,16 @@ zstd.ini:
 extension=zstd.so
 ```
 
+## Constant
+
+Name                           | Description
+-------------------------------| -----------
+ZSTD\_COMPRESS\_LEVEL\_MIN     | Minimal compress level value
+ZSTD\_COMPRESS\_LEVEL\_MAX     | Maximal compress level value
+ZSTD\_COMPRESS\_LEVEL\_DEFAULT | Default compress level value
+LIBZSTD\_VERSION\_NUMBER       | libzstd version number
+LIBZSTD\_VERSION\_STRING       | libzstd version string
+
 ## Function
 
 * zstd\_compress — Zstandard compression
