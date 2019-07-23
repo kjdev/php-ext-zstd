@@ -525,6 +525,9 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count 
             res = ZSTD_decompressStream(self->dctx, &self->output , &self->input);
             if (ZSTD_isError(res)) {
                 php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+#if PHP_VERSION_ID >= 70400
+                return -1;
+#endif
             }
             /* for us */
             self->output.size = self->output.pos;
@@ -586,6 +589,9 @@ static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t c
 #endif
             if (ZSTD_isError(res)) {
                 php_error_docref(NULL TSRMLS_CC, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+#if PHP_VERSION_ID >= 70400
+                return -1;
+#endif
             }
             php_stream_write(self->stream, self->bufout, self->output.pos);
         } while (self->input.pos != self->input.size);
