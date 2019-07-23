@@ -488,9 +488,16 @@ static int php_zstd_comp_close(php_stream *stream, int close_handle TSRMLS_DC)
 }
 
 
+#if PHP_VERSION_ID < 70400
 static size_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
 {
-    size_t x, res, ret = 0;
+    size_t ret = 0;
+#else
+static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
+{
+    ssize_t ret = 0;
+#endif
+    size_t x, res;
     STREAM_DATA_FROM_STREAM();
 
     while (count > 0) {
@@ -536,9 +543,16 @@ static size_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count T
 }
 
 
+#if PHP_VERSION_ID < 70400
 static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
 {
-    size_t res, x, ret = 0;
+    size_t ret = 0;
+#else
+static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
+{
+    ssize_t ret = 0;
+#endif
+    size_t x, res;
 
     STREAM_DATA_FROM_STREAM();
 
