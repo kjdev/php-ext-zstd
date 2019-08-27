@@ -1,22 +1,24 @@
 language: php
-dist: precise
-
-php:
-  - 5.2
-  - 5.3
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
-  - 7.1
-  - 7.2
-  - 7.3
-  - nightly
 
 matrix:
+  include:
+    - php: 5.2
+      dist: precise
+    - php: 5.3
+      dist: precise
+    - php: 5.4
+      dist: precise
+    - php: 5.5
+      dist: precise
+    - php: 5.6
+    - php: 7.0
+    - php: 7.1
+    - php: 7.2
+    - php: 7.3
+    - php: nightly
   fast_finish: true
   allow_failures:
-    - php: 'nightly'
+    - php: nightly
 
 env:
   - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
