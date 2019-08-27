@@ -48,4 +48,13 @@ extern zend_module_entry zstd_module_entry;
 #define PHP_ZSTD_G(v) (zstd_globals.v)
 #endif
 
+#if ZEND_MODULE_API_NO >= 20190128
+#ifndef TSRMLS_CC
+#define TSRMLS_CC
+#endif
+#ifndef TSRMLS_DC
+#define TSRMLS_DC
+#endif
+#endif
+
 #endif  /* PHP_ZSTD_H */
