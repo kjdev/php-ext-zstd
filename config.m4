@@ -58,6 +58,12 @@ if test "$PHP_ZSTD" != "no"; then
   PHP_NEW_EXTENSION(zstd, zstd.c $ZSTD_COMMON_SOURCES $ZSTD_COMPRESS_SOURCES $ZSTD_DECOMPRESS_SOURCES, $ext_shared)
   PHP_SUBST(ZSTD_SHARED_LIBADD)
 
+  if test "$PHP_LIBZSTD" = "no"; then
+    PHP_ADD_BUILD_DIR($ext_builddir/zstd/lib/common)
+    PHP_ADD_BUILD_DIR($ext_builddir/zstd/lib/compress)
+    PHP_ADD_BUILD_DIR($ext_builddir/zstd/lib/decompress)
+  fi
+
   ifdef([PHP_INSTALL_HEADERS],
   [
     PHP_INSTALL_HEADERS([ext/zstd/], [php_zstd.h])
