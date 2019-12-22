@@ -11,10 +11,10 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2019-12-20</date>
- <time>11:16:25</time>
+ <date>2019-12-22</date>
+ <time>11:01:22</time>
  <version>
-  <release>0.7.5</release>
+  <release>0.7.6</release>
   <api>0.7</api>
  </version>
  <stability>
@@ -23,7 +23,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
  </stability>
  <license>MIT</license>
  <notes>
-First alpha release
+- Fixed PHP_ADD_INCLUDE in config.m4
  </notes>
  <contents>
   <dir name="/">
