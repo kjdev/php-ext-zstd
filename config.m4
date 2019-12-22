@@ -52,8 +52,8 @@ if test "$PHP_ZSTD" != "no"; then
     ZSTD_COMPRESS_SOURCES="zstd/lib/compress/fse_compress.c zstd/lib/compress/hist.c zstd/lib/compress/huf_compress.c zstd/lib/compress/zstd_compress.c zstd/lib/compress/zstd_compress_literals.c zstd/lib/compress/zstd_compress_sequences.c zstd/lib/compress/zstd_double_fast.c zstd/lib/compress/zstd_fast.c zstd/lib/compress/zstd_lazy.c zstd/lib/compress/zstd_ldm.c zstd/lib/compress/zstd_opt.c zstd/lib/compress/zstdmt_compress.c"
     ZSTD_DECOMPRESS_SOURCES="zstd/lib/decompress/huf_decompress.c zstd/lib/decompress/zstd_ddict.c zstd/lib/decompress/zstd_decompress.c zstd/lib/decompress/zstd_decompress_block.c"
 
-    PHP_ADD_INCLUDE(zstd/lib/common)
-    PHP_ADD_INCLUDE(zstd/lib)
+    PHP_ADD_INCLUDE(PHP_EXT_SRCDIR()/zstd/lib/common)
+    PHP_ADD_INCLUDE(PHP_EXT_SRCDIR()/zstd/lib)
   fi
   PHP_NEW_EXTENSION(zstd, zstd.c $ZSTD_COMMON_SOURCES $ZSTD_COMPRESS_SOURCES $ZSTD_DECOMPRESS_SOURCES, $ext_shared)
   PHP_SUBST(ZSTD_SHARED_LIBADD)
