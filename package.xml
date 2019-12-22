@@ -12,9 +12,9 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <active>yes</active>
  </lead>
  <date>2019-12-22</date>
- <time>11:01:22</time>
+ <time>11:49:43</time>
  <version>
-  <release>0.7.6</release>
+  <release>0.7.7</release>
   <api>0.7</api>
  </version>
  <stability>
@@ -23,7 +23,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
  </stability>
  <license>MIT</license>
  <notes>
-- Fixed PHP_ADD_INCLUDE in config.m4
+- Fixed PHP_ADD_BUILD_DIR in config.m4
  </notes>
  <contents>
   <dir name="/">
