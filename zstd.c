@@ -224,7 +224,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
     if (ZSTD_isError(result)) {
         RETVAL_FALSE;
-    } else if (result <= 0) {
+    } else if (result < 0) {
         RETVAL_FALSE;
     } else {
 #if ZEND_MODULE_API_NO >= 20141001
