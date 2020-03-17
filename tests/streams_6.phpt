@@ -4,6 +4,7 @@ compress.zstd read online stream
 <?php
 if (version_compare(PHP_VERSION, '5.4', '<')) die('skip PHP is too old');
 if (getenv("SKIP_ONLINE_TESTS")) die('skip online test');
+if (!extension_loaded('openssl')) die('skip reqiures ext-openssl for https stream');
 ?>
 --INI--
 allow_url_fopen=1
