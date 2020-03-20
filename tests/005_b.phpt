@@ -2,7 +2,7 @@
 zstd_uncompress(): error conditions
 --SKIPIF--
 <?php
-if (version_compare(PHP_VERSION, '8.0', '<')) die('skip PHP is too new');
+if (PHP_VERSION_ID < 80000) die("skip requires PHP 8.0+");
 --FILE--
 <?php
 

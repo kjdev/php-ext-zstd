@@ -2,7 +2,7 @@
 compress.zstd read online stream denied
 --SKIPIF--
 <?php
-if (version_compare(PHP_VERSION, '5.4', '<')) die('skip PHP is too old');
+if (PHP_VERSION_ID < 50400) die("skip requires PHP 5.4+");
 ?>
 --INI--
 allow_url_fopen=0
