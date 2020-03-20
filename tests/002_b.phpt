@@ -2,7 +2,7 @@
 zstd_compress(): error conditions
 --SKIPIF--
 <?php
-if (version_compare(PHP_VERSION, '8.0', '<')) die('skip PHP is too new');
+if (version_compare(PHP_VERSION, '8.0', '<')) die('skip PHP is too old');
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');
