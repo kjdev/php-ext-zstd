@@ -44,6 +44,10 @@
 #endif
 #include "zstd.h"
 
+#ifndef ZSTD_CLEVEL_DEFAULT
+#define ZSTD_CLEVEL_DEFAULT 3
+#endif
+
 #define FRAME_HEADER_SIZE 5
 #define BLOCK_HEADER_SIZE 3
 #define MAX_HEADER_SIZE FRAME_HEADER_SIZE+3

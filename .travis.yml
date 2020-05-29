@@ -16,6 +16,11 @@ matrix:
     - php: 7.2
     - php: 7.3
     - php: 7.4
+    - php: 7.4
+      env:
+        - REPORT_EXIT_STATUS=1 NO_INTERACTION=1 LIBZSTD=1
+      before_install:
+        - sudo apt-get install -qq pkg-config libzstd1-dev
     - php: nightly
   fast_finish: true
   allow_failures:
@@ -25,7 +30,7 @@ env:
   - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
 
 before_script:
-  - phpize && ./configure && make
+  - phpize && [ -z "$LIBZSTD" ] && ./configure || ./configure --with-libzstd && make
 
 script:
   - make test TESTS="--show-diff" | tee test-output.txt && grep 'TEST SUMMARY$' test-output.txt > /dev/null ; test $? '!=' 0
