@@ -2,7 +2,7 @@
 zstd_compress(): compress level
 --SKIPIF--
 <?php
-if (LIBZSTD_VERSION_NUMBER > 10301) die("skip needs libzstd 1.3.1 or older");
+if (LIBZSTD_VERSION_NUMBER <= 10301 || LIBZSTD_VERSION_NUMBER >= 10301) die("skip needs libzstd 1.3.[2-3]");
 ?>
 --FILE--
 <?php
@@ -58,15 +58,9 @@ check_compress($data, 0);
 *** Invalid Compression Level ***
 
 Warning: zstd_compress: compression level (100) must be within 1..22 in %s on line %d
-100 -- 0 -- 
-Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
-false
+100 -- 0 -- false
 
 Warning: zstd_compress: compression level (-1) must be within 1..22 in %s on line %d
--1 -- 0 -- 
-Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
-false
-0 -- 3547 -- 
-Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
-false
+-1 -- 0 -- false
+0 -- 3547 -- false
 ===Done===
