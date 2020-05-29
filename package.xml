@@ -11,10 +11,10 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2020-02-06</date>
- <time>11:12:25</time>
+ <date>2020-05-29</date>
+ <time>02:21:04</time>
  <version>
-  <release>0.8.0</release>
+  <release>0.8.1</release>
   <api>0.8</api>
  </version>
  <stability>
@@ -23,7 +23,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
  </stability>
  <license>MIT</license>
  <notes>
-- ztsd_uncompress may return a empty string
+- Updated built-in zstd library to 1.4.5
  </notes>
  <contents>
   <dir name="/">
@@ -72,6 +72,8 @@ http://pear.php.net/dtd/package-2.0.xsd">
       <file name="zstd_compress_literals.c" role="src" />
       <file name="zstd_compress_sequences.h" role="src" />
       <file name="zstd_compress_sequences.c" role="src" />
+      <file name="zstd_compress_superblock.h" role="src" />
+      <file name="zstd_compress_superblock.c" role="src" />
       <file name="zstd_cwksp.h" role="src" />
       <file name="zstd_double_fast.h" role="src" />
       <file name="zstd_double_fast.c" role="src" />
@@ -108,6 +110,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
     <file name="006.phpt" role="test" />
     <file name="007.phpt" role="test" />
     <file name="008.phpt" role="test" />
+    <file name="008_b.phpt" role="test" />
     <file name="009.phpt" role="test" />
     <file name="010.phpt" role="test" />
     <file name="011.phpt" role="test" />
@@ -125,7 +128,6 @@ http://pear.php.net/dtd/package-2.0.xsd">
     <file name="streams_6.phpt" role="test" />
     <file name="streams_7.phpt" role="test" />
     <file name="streams_8.phpt" role="test" />
-    <file name="version_number.inc" role="test" />
    </dir>
   </dir>
  </contents>
