@@ -1,0 +1,11 @@
+ARG_ENABLE("zstd", "zstd support", "yes");
+
+if (PHP_ZSTD != "no") {
+	if (CHECK_LIB("libzstd.lib", "zstd", PHP_ZSTD) &&
+			CHECK_HEADER_ADD_INCLUDE("zstd.h", "CFLAGS_ZSTD", PHP_ZSTD)) {
+		EXTENSION("zstd", "zstd.c", null, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+	} else {
+		WARNING("zstd support can't be enabled, libraries or headers are missing");
+		PHP_ZSTD = "no";
+	}
+}

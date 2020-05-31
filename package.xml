@@ -30,6 +30,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
    <file name="LICENSE" role="doc" />
    <file name="README.md" role="doc" />
    <file name="config.m4" role="src" />
+   <file name="config.w32" role="src" />
    <file name="php_zstd.h" role="src" />
    <file name="zstd.c" role="src" />
    <dir name="zstd">
