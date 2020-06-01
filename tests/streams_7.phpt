@@ -3,6 +3,7 @@ compress.zstd read online stream denied
 --SKIPIF--
 <?php
 if (PHP_VERSION_ID < 50400) die("skip requires PHP 5.4+");
+if (!in_array('https', stream_get_wrappers(), true)) die("skip requires https stream wrapper");
 ?>
 --INI--
 allow_url_fopen=0
