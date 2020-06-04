@@ -11,19 +11,19 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2020-05-29</date>
- <time>02:21:04</time>
+ <date>2020-06-04</date>
+ <time>05:13:40</time>
  <version>
-  <release>0.8.1</release>
-  <api>0.8</api>
+  <release>0.9.0</release>
+  <api>0.9.0</api>
  </version>
  <stability>
-  <release>alpha</release>
-  <api>alpha</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license>MIT</license>
  <notes>
-- Updated built-in zstd library to 1.4.5
+- Windows build support
  </notes>
  <contents>
   <dir name="/">
