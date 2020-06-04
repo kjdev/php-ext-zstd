@@ -13,7 +13,7 @@ echo "Compress\n";
 var_dump(copy(PHP_BINARY, 'compress.zstd://' . $file1));
 var_dump($size0 = filesize(PHP_BINARY));
 var_dump($size1 = filesize($file1));
-var_dump($size1 > 1 && $size1 < $size0 / 2);
+var_dump($size1 > 1 && $size1 < $size0);
 
 echo "Decompress\n";
 var_dump(copy('compress.zstd://' . $file1, $file2));
