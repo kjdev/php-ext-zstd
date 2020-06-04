@@ -1,6 +1,7 @@
 # Zstd Extension for PHP
 
 [![Build Status](https://secure.travis-ci.org/kjdev/php-ext-zstd.png?branch=master)](https://travis-ci.org/kjdev/php-ext-zstd)
+[![Build status](https://ci.appveyor.com/api/projects/status/xfywqdyxa0nlwlps?svg=true)](https://ci.appveyor.com/project/kjdev/php-ext-zstd)
 
 This extension allows Zstandard.
 
