@@ -47,7 +47,7 @@ Other RPM packages of this extension, for other PHP versions, are available in [
 
 ## Configration
 
-zstd.ini:
+php.ini:
 
 ```
 extension=zstd.so
