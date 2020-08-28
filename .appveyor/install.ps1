@@ -16,12 +16,22 @@ if (-not (Test-Path "C:\build-cache\$dname1")) {
     Move-Item "C:\build-cache\$dname0" "C:\build-cache\$dname1"
 }
 
+# PHP releases
+Invoke-WebRequest "https://windows.php.net/downloads/releases/releases.json" -OutFile "C:\build-cache\releases.json"
+$php_version = (Get-Content -Path "C:\build-cache\releases.json" | ConvertFrom-Json | ForEach-Object {
+    if ($_."$env:PHP_VER") {
+        return $_."$env:PHP_VER".version
+    } else {
+        return "$env:PHP_VER"
+    }
+})
+
 # PHP devel pack
 $ts_part = ''
 if ('0' -eq $env:TS) {
     $ts_part = '-nts'
 }
-$bname = "php-devel-pack-$env:PHP_VER$ts_part-Win32-$env:VC-$env:ARCH.zip"
+$bname = "php-devel-pack-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
 if (-not (Test-Path "C:\build-cache\$bname")) {
     try {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
@@ -29,8 +39,8 @@ if (-not (Test-Path "C:\build-cache\$bname")) {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/$bname" -OutFile "C:\build-cache\$bname"
     }
 }
-$dname0 = "php-$env:PHP_VER-devel-$env:VC-$env:ARCH"
-$dname1 = "php-$env:PHP_VER$ts_part-devel-$env:VC-$env:ARCH"
+$dname0 = "php-$php_version-devel-$env:VC-$env:ARCH"
+$dname1 = "php-$php_version$ts_part-devel-$env:VC-$env:ARCH"
 if (-not (Test-Path "C:\build-cache\$dname1")) {
     Expand-Archive "C:\build-cache\$bname" 'C:\build-cache'
     if ($dname0 -ne $dname1) {
@@ -40,7 +50,7 @@ if (-not (Test-Path "C:\build-cache\$dname1")) {
 $env:PATH = "C:\build-cache\$dname1;$env:PATH"
 
 # PHP binary
-$bname = "php-$env:PHP_VER$ts_part-Win32-$env:VC-$env:ARCH.zip"
+$bname = "php-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
 if (-not (Test-Path "C:\build-cache\$bname")) {
     try {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
@@ -48,7 +58,7 @@ if (-not (Test-Path "C:\build-cache\$bname")) {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/$bname" -OutFile "C:\build-cache\$bname"
     }
 }
-$dname = "php-$env:PHP_VER$ts_part-Win32-$env:VC-$env:ARCH"
+$dname = "php-$php_version$ts_part-Win32-$env:VC-$env:ARCH"
 if (-not (Test-Path "C:\build-cache\$dname")) {
     Expand-Archive "C:\build-cache\$bname" "C:\build-cache\$dname"
 }

@@ -8,27 +8,27 @@ environment:
   BIN_SDK_VER: 2.2.0
   DEP: libzstd-1.4.5
   matrix:
-    - PHP_VER: 7.2.31
+    - PHP_VER: 7.2
       ARCH: x64
       TS: 0
       VC: vc15
-    - PHP_VER: 7.2.31
+    - PHP_VER: 7.2
       ARCH: x86
       TS: 1
       VC: vc15
-    - PHP_VER: 7.3.18
+    - PHP_VER: 7.3
       ARCH: x64
       TS: 0
       VC: vc15
-    - PHP_VER: 7.3.18
+    - PHP_VER: 7.3
       ARCH: x86
       TS: 1
       VC: vc15
-    - PHP_VER: 7.4.6
+    - PHP_VER: 7.4
       ARCH: x64
       TS: 0
       VC: vc15
-    - PHP_VER: 7.4.6
+    - PHP_VER: 7.4
       ARCH: x86
       TS: 1
       VC: vc15
