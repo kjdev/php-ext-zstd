@@ -34,15 +34,19 @@ if ('0' -eq $env:TS) {
 $bname = "php-devel-pack-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
 if (-not (Test-Path "C:\build-cache\$bname")) {
     try {
-        Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
-    } catch [System.Net.WebException] {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/$bname" -OutFile "C:\build-cache\$bname"
+    } catch [System.Net.WebException] {
+        Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
     }
 }
 $dname0 = "php-$php_version-devel-$env:VC-$env:ARCH"
 $dname1 = "php-$php_version$ts_part-devel-$env:VC-$env:ARCH"
 if (-not (Test-Path "C:\build-cache\$dname1")) {
     Expand-Archive "C:\build-cache\$bname" 'C:\build-cache'
+    if (-not (Test-Path "C:\build-cache\$dname0")) {
+        $php_normalize_version = $php_version.Split("-")[0]
+        $dname0 = "php-$php_normalize_version-devel-$env:VC-$env:ARCH"
+    }
     if ($dname0 -ne $dname1) {
         Move-Item "C:\build-cache\$dname0" "C:\build-cache\$dname1"
     }
@@ -53,9 +57,9 @@ $env:PATH = "C:\build-cache\$dname1;$env:PATH"
 $bname = "php-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
 if (-not (Test-Path "C:\build-cache\$bname")) {
     try {
-        Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
-    } catch [System.Net.WebException] {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/$bname" -OutFile "C:\build-cache\$bname"
+    } catch [System.Net.WebException] {
+        Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\build-cache\$bname"
     }
 }
 $dname = "php-$php_version$ts_part-Win32-$env:VC-$env:ARCH"
