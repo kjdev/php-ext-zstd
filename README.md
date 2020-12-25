@@ -1,5 +1,8 @@
 # Zstd Extension for PHP
 
+[![Linux](https://github.com/kjdev/php-ext-zstd/workflows/Linux/badge.svg?branch=master)](https://github.com/kjdev/php-ext-zstd/actions?query=workflow%3ALinux+branch%3Amaster)
+[![Windows](https://github.com/kjdev/php-ext-zstd/workflows/Windows/badge.svg?branch=master)](https://github.com/kjdev/php-ext-zstd/actions?query=workflow%3AWindows+branch%3Amaster)
+
 This extension allows Zstandard.
 
 Documentation for Zstandard can be found at [» https://github.com/facebook/zstd](https://github.com/facebook/zstd).
