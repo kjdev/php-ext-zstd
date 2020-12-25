@@ -1,0 +1,91 @@
+name: Windows
+
+on: [push]
+
+env:
+  PHP_EXT: zstd
+  BIN_SDK_VER: 2.2.0
+
+jobs:
+  ci:
+    strategy:
+      matrix:
+        php:
+          - '8.0'
+          - '7.4'
+          - '7.3'
+          - '7.2'
+        arch:
+          - x64
+          - x86
+        ts:
+          - 'nts'
+          - 'ts'
+        vc:
+          - vs16
+          - vc15
+        library:
+          - false
+          - true
+        include:
+          - vc: vs16
+            os: windows-latest
+          - vc: vc15
+            os: windows-2016
+        exclude:
+          - php: '8.0'
+            vc: vc15
+          - php: '7.4'
+            vc: vs16
+          - php: '7.3'
+            vc: vs16
+          - php: '7.2'
+            vc: vs16
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      PHP_VER: ${{ matrix.php }}
+      VC: ${{ matrix.vc }}
+      ARCH: ${{ matrix.arch }}
+      TS: ${{ matrix.ts }}
+
+    if: contains(github.event.head_commit.message, 'ci skip') == false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Checkout submodule
+        run: .\.github\workflows\submodule.ps1
+        if: ${{ ! matrix.library }}
+      - name: Install dependency library
+        run: .\.github\workflows\vcpkg.ps1
+        env:
+          VCPKG_LIBRARY: zstd
+        if: ${{ matrix.library && matrix.vc == 'vs16' }}
+
+      - name: Install build command
+        run: .\.github\workflows\install.ps1
+        if: ${{ ! matrix.library || matrix.vc == 'vs16' }}
+      - name: Install build command and library
+        run: .\.github\workflows\install.ps1
+        env:
+          DEP: libzstd-1.4.8
+        if: ${{ matrix.library && matrix.vc == 'vc15' }}
+
+      - name: Build
+        run: .\.github\workflows\build.ps1
+
+      - name: Test
+        run: .\.github\workflows\test.ps1
+        env:
+          REPORT_EXIT_STATUS: 1
+          NO_INTERACTION: 1
+
+      - name: Store artifact DLL
+        uses: actions/upload-artifact@v2
+        with:
+          name: php_${{ env.PHP_EXT }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vc }}-${{ matrix.arch }}
+          path: .\php_${{ env.PHP_EXT }}.dll
+        if: ${{ ! matrix.library }}

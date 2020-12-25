@@ -1,0 +1,94 @@
+name: Linux
+
+on: [push]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php:
+          - '8.0'
+          - '7.4'
+          - '7.4-zts'
+          - '7.3'
+          - '7.3-zts'
+          - '7.2'
+          - '7.2-zts'
+        image: [php]
+        library:
+          - false
+          - true
+        include:
+          - php: '8.0-zts'
+            image: ghcr.io/kjdev/php
+          - php: '8.0-zts'
+            image: ghcr.io/kjdev/php
+            library: true
+          - php: '7.1'
+            image: ghcr.io/kjdev/php
+          - php: '7.0'
+            image: ghcr.io/kjdev/php
+          - php: '5.6'
+            image: ghcr.io/kjdev/php
+          - php: '5.5'
+            image: ghcr.io/kjdev/php
+          - php: '5.4'
+            image: ghcr.io/kjdev/php
+          - php: '5.3'
+            image: ghcr.io/kjdev/php
+          - php: '5.2'
+            image: ghcr.io/kjdev/php
+
+    if: contains(github.event.head_commit.message, 'ci skip') == false
+
+    container:
+      image: ${{ matrix.image }}:${{ matrix.php }}-alpine
+
+    steps:
+      - name: Prepare required command
+        run: |
+          apk upgrade --no-cache
+          apk add --no-cache autoconf gcc git libtool make musl-dev
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive
+        if: ${{ ! matrix.library }}
+      - name: Install dependency library
+        run: |
+          apk add --no-cache zstd-dev
+        if: ${{ matrix.library }}
+
+      - name: Build
+        run: |
+          phpize
+          ./configure
+          make
+        if: ${{ ! matrix.library }}
+      - name: Build with library
+        run: |
+          phpize
+          ./configure --with-libzstd
+          make
+        if: ${{ matrix.library }}
+
+      - name: Test
+        run: |
+          make test TESTS="--show-diff" | tee test-output.txt
+          grep 'TEST SUMMARY$' test-output.txt > /dev/null && exit 1 || exit 0
+        env:
+          REPORT_EXIT_STATUS: 1
+          NO_INTERACTION: 1
+      - name: Failure Test
+        run: |
+          for FILE in $(find ./tests -name '*.diff'); do
+            echo echo $FILE
+            cat $FILE
+            echo
+          done
+        if: ${{ failure() }}
