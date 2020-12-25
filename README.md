@@ -1,7 +1,5 @@
 # Zstd Extension for PHP
 
-[![Build status](https://ci.appveyor.com/api/projects/status/xfywqdyxa0nlwlps?svg=true)](https://ci.appveyor.com/project/kjdev/php-ext-zstd)
-
 This extension allows Zstandard.
 
 Documentation for Zstandard can be found at [» https://github.com/facebook/zstd](https://github.com/facebook/zstd).
