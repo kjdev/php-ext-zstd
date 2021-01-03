@@ -24,6 +24,12 @@ To use the system library
 % ./configure --with-libzstd
 ```
 
+Install from [pecl](https://pecl.php.net/package/zstd):
+
+``` bash
+% pecl install zstd
+```
+
 ## Distribution binary packages
 
 ### Fedora
