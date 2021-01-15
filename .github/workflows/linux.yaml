@@ -16,16 +16,19 @@ jobs:
           - '7.3-zts'
           - '7.2'
           - '7.2-zts'
-        image: [php]
         library:
-          - false
-          - true
+          - ''
+          - 'system'
+        apcu:
+          - ''
+          - 'apcu'
+        image: [php]
         include:
           - php: '8.0-zts'
             image: ghcr.io/kjdev/php
           - php: '8.0-zts'
             image: ghcr.io/kjdev/php
-            library: true
+            library: 'system'
           - php: '7.1'
             image: ghcr.io/kjdev/php
           - php: '7.0'
@@ -64,6 +67,12 @@ jobs:
           apk add --no-cache zstd-dev
         if: ${{ matrix.library }}
 
+      - name: Install PHP APCu extension
+        run: |
+          printf "\n" | pecl install apcu
+          echo 'extension=apcu.so' > $(php --ini | grep 'Scan for' | sed 's|.* \(/.*\)$|\1|')/apcu.ini
+        if: ${{ matrix.apcu }}
+
       - name: Build
         run: |
           phpize
@@ -77,6 +86,11 @@ jobs:
           make
         if: ${{ matrix.library }}
 
+      - name: Test Preparation APCu
+        run: |
+          cp $(php-config --extension-dir)/apcu.so modules/
+          sed -i 's/\$(PHP_TEST_SHARED_EXTENSIONS)/-d extension=apcu \$(PHP_TEST_SHARED_EXTENSIONS)/' Makefile
+        if: ${{ matrix.apcu }}
       - name: Test
         run: |
           make test TESTS="--show-diff" | tee test-output.txt
