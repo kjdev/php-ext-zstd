@@ -100,6 +100,16 @@ if test "$PHP_ZSTD" != "no"; then
   ])
 fi
 
+dnl APCu
+AC_MSG_CHECKING([for APCu includes])
+if test -f "$phpincludedir/ext/apcu/apc_serializer.h"; then
+  apc_inc_path="$phpincludedir"
+  AC_MSG_RESULT([APCu in $apc_inc_path])
+  AC_DEFINE(HAVE_APCU_SUPPORT, 1, [Whether to enable APCu support])
+else
+  AC_MSG_RESULT([not found])
+fi
+
 dnl coverage
 PHP_ARG_ENABLE(coverage, whether to enable coverage support,
 [  --enable-coverage       Enable coverage support], no, no)

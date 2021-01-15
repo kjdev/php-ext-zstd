@@ -33,6 +33,11 @@
 #else
 #include <ext/standard/php_smart_str.h>
 #endif
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#include <ext/standard/php_var.h>
+#include <ext/apcu/apc_serializer.h>
+#include <zend_smart_str.h>
+#endif
 #include "php_zstd.h"
 
 /* zstd */
@@ -812,6 +817,94 @@ php_stream_wrapper php_stream_zstd_wrapper = {
     0 /* is_url */
 };
 
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
+{
+    int result;
+    php_serialize_data_t var_hash;
+    size_t size;
+    smart_str var = {0};
+
+    PHP_VAR_SERIALIZE_INIT(var_hash);
+    php_var_serialize(&var, (zval*) value, &var_hash);
+    PHP_VAR_SERIALIZE_DESTROY(var_hash);
+    if (var.s == NULL) {
+        return 0;
+    }
+
+    size = ZSTD_compressBound(ZSTR_LEN(var.s));
+    *buf = (char*) emalloc(size + 1);
+    if (*buf == NULL) {
+        *buf_len = 0;
+        return 0;
+    }
+
+    *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
+                             DEFAULT_COMPRESS_LEVEL);
+    if (ZSTD_isError(*buf_len) || *buf_len == 0) {
+        efree(*buf);
+        *buf = NULL;
+        *buf_len = 0;
+        result = 0;
+    } else {
+        result = 1;
+    }
+
+    smart_str_free(&var);
+
+    return result;
+}
+
+static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
+{
+    const unsigned char* tmp;
+    int result;
+    php_unserialize_data_t var_hash;
+    size_t var_len;
+    uint64_t size;
+    void *var;
+
+    size = ZSTD_getFrameContentSize(buf, buf_len);
+    if (size == ZSTD_CONTENTSIZE_ERROR
+        || size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        ZVAL_NULL(value);
+        return 0;
+    }
+
+    var = emalloc(size);
+    if (!var) {
+        ZVAL_NULL(value);
+        return 0;
+    }
+
+    var_len = ZSTD_decompress(var, size, buf, buf_len);
+    if (ZSTD_isError(var_len) || var_len == 0) {
+        efree(var);
+        ZVAL_NULL(value);
+        return 0;
+    }
+
+    PHP_VAR_UNSERIALIZE_INIT(var_hash);
+    tmp = (unsigned char*) var;
+    result = php_var_unserialize(value, &tmp, var + var_len, &var_hash);
+    PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
+
+    if (!result) {
+        php_error_docref(NULL, E_NOTICE,
+                         "Error at offset %ld of %ld bytes",
+                         (zend_long) (tmp - (unsigned char*) var),
+                         (zend_long) var_len);
+        ZVAL_NULL(value);
+        result = 0;
+    } else {
+        result = 1;
+    }
+
+    efree(var);
+
+    return result;
+}
+#endif
 
 ZEND_MINIT_FUNCTION(zstd)
 {
@@ -834,6 +927,13 @@ ZEND_MINIT_FUNCTION(zstd)
 
     php_register_url_stream_wrapper(STREAM_NAME, &php_stream_zstd_wrapper TSRMLS_CC);
 
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+    apc_register_serializer("zstd",
+                            APC_SERIALIZER_NAME(zstd),
+                            APC_UNSERIALIZER_NAME(zstd),
+                            NULL);
+#endif
+
     return SUCCESS;
 }
 
@@ -843,6 +943,9 @@ ZEND_MINFO_FUNCTION(zstd)
     php_info_print_table_row(2, "Zstd support", "enabled");
     php_info_print_table_row(2, "Extension Version", PHP_ZSTD_EXT_VERSION);
     php_info_print_table_row(2, "Interface Version", ZSTD_VERSION_STRING);
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+    php_info_print_table_row(2, "APCu serializer ABI", APC_SERIALIZER_ABI);
+#endif
     php_info_print_table_end();
 }
 
@@ -886,8 +989,19 @@ static zend_function_entry zstd_functions[] = {
     {NULL, NULL, NULL}
 };
 
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+static const zend_module_dep zstd_module_deps[] = {
+    ZEND_MOD_OPTIONAL("apcu")
+    ZEND_MOD_END
+};
+#endif
+
 zend_module_entry zstd_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
+#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+    STANDARD_MODULE_HEADER_EX,
+    NULL,
+    zstd_module_deps,
+#elif ZEND_MODULE_API_NO >= 20010901
     STANDARD_MODULE_HEADER,
 #endif
     "zstd",
