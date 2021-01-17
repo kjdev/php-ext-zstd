@@ -157,8 +157,8 @@ string **zstd\_uncompress\_dict** ( string _$data_ , string _$dict_ )
 
 Zstandard decompression using a digested dictionary.
 
-> Alias: zstd\_dempress\_dict,
-> zstd\_unmpress\_usingcdict, zstd\_decompress\_usingcdict
+> Alias: zstd\_decompress\_dict,
+> zstd\_uncompress\_usingcdict, zstd\_decompress\_usingcdict
 
 #### Pameters
 
