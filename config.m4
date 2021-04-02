@@ -57,6 +57,7 @@ if test "$PHP_ZSTD" != "no"; then
       zstd/lib/common/threading.c
       zstd/lib/common/xxhash.c
       zstd/lib/common/zstd_common.c
+      zstd/lib/common/zstd_trace.c
     "
     ZSTD_COMPRESS_SOURCES="
       zstd/lib/compress/fse_compress.c
