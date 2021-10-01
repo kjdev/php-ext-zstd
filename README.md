@@ -93,7 +93,7 @@ Zstandard compression.
 * _level_
 
   The level of compression (1-22).
-  (Defaults to 3, 0 for no compression)
+  (Defaults to 3)
 
   A value smaller than 0 means a faster compression level.
   (Zstandard library 1.3.4 or later)
