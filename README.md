@@ -128,7 +128,7 @@ Returns the decompressed data or FALSE if an error occurred.
 
 #### Description
 
-string **zstd\_compress\_dict** ( string _$data_ , string _$dict_ )
+string **zstd\_compress\_dict** ( string _$data_ , string _$dict_ [, int _$level_ = 3 ])
 
 Zstandard compression using a digested dictionary.
 
@@ -143,6 +143,11 @@ Zstandard compression using a digested dictionary.
 * _dict_
 
   The Dictionary data.
+
+* _level_
+
+  The level of compression (1-22).
+  (Defaults to 3)
 
 #### Return Values
 
