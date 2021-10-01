@@ -344,6 +344,8 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     unsigned long long const rSize = ZSTD_getDecompressedSize(Z_STRVAL_P(data),
                                                               Z_STRLEN_P(data));
     if (rSize == 0) {
+        zend_error(E_WARNING, "zstd_uncompress_dict:"
+                   " it was not compressed by zstd");
         RETURN_FALSE;
     }
     void* const rBuff = emalloc((size_t)rSize);
