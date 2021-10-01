@@ -108,12 +108,6 @@ ZEND_FUNCTION(zstd_compress)
                  " must be within 1..%d", level, maxLevel);
 #endif
       RETURN_FALSE;
-    } else if (level == 0) {
-#if ZEND_MODULE_API_NO >= 20141001
-      RETURN_STRINGL(Z_STRVAL_P(data), Z_STRLEN_P(data));
-#else
-      RETURN_STRINGL(Z_STRVAL_P(data), Z_STRLEN_P(data), 1);
-#endif
     }
 
     size = ZSTD_compressBound(Z_STRLEN_P(data));
