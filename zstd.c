@@ -71,6 +71,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, dictBuffer)
+    ZEND_ARG_INFO(0, level)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
@@ -249,9 +250,11 @@ ZEND_FUNCTION(zstd_uncompress)
 ZEND_FUNCTION(zstd_compress_dict)
 {
     zval *data, *dictBuffer;
+    long level = DEFAULT_COMPRESS_LEVEL;
+    uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                              "zz", &data, &dictBuffer, &level) == FAILURE) {
+                              "zz|l", &data, &dictBuffer, &level) == FAILURE) {
         RETURN_FALSE;
     }
     if (Z_TYPE_P(data) != IS_STRING) {
@@ -263,6 +266,18 @@ ZEND_FUNCTION(zstd_compress_dict)
         zend_error(E_WARNING, "zstd_compress_dict:"
                    " expects the second parameter to be string.");
         RETURN_FALSE;
+    }
+
+#if ZSTD_VERSION_NUMBER >= 10304
+    if (level > maxLevel) {
+      zend_error(E_WARNING, "zstd_compress_dict: compression level (%ld)"
+                 " must be within 1..%d or smaller then 0", level, maxLevel);
+#else
+    if (level > maxLevel || level < 0) {
+      zend_error(E_WARNING, "zstd_compress_dict: compression level (%ld)"
+                 " must be within 1..%d", level, maxLevel);
+#endif
+      RETURN_FALSE;
     }
 
     size_t const cBuffSize = ZSTD_compressBound(Z_STRLEN_P(data));
@@ -279,7 +294,7 @@ ZEND_FUNCTION(zstd_compress_dict)
     }
     ZSTD_CDict* const cdict = ZSTD_createCDict(Z_STRVAL_P(dictBuffer),
                                                Z_STRLEN_P(dictBuffer),
-                                               DEFAULT_COMPRESS_LEVEL);
+                                               level);
     if (!cdict) {
         efree(cBuff);
         zend_error(E_WARNING, "ZSTD_createCDict() error");
