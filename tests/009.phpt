@@ -18,7 +18,11 @@ echo "*** Data size ***", PHP_EOL;
 echo strlen($data), PHP_EOL;
 
 echo "*** Compression Level ***", PHP_EOL;
-for ($level = 1; $level <= 22; $level++) {
+for (
+  $level = ZSTD_COMPRESS_LEVEL_MIN;
+  $level <= ZSTD_COMPRESS_LEVEL_MAX;
+  $level++
+) {
   check_compress($data, $level);
 }
 
@@ -29,7 +33,6 @@ for ($level = -1; $level >= -5; $level--) {
 
 echo "*** Invalid Compression Level ***", PHP_EOL;
 check_compress($data, 100);
-check_compress($data, 0);
 ?>
 ===Done===
 --EXPECTF--
@@ -68,9 +71,6 @@ check_compress($data, 0);
 
 Warning: zstd_compress: compression level (100) must be within 1..22 or smaller then 0 in %s on line %d
 100 -- 0 -- 
-Warning: zstd_uncompress: it was not compressed by zstd in %s
-false
-0 -- 3547 -- 
 Warning: zstd_uncompress: it was not compressed by zstd in %s
 false
 ===Done===

@@ -2,7 +2,7 @@
 zstd_compress(): compress level
 --SKIPIF--
 <?php
-if (LIBZSTD_VERSION_NUMBER > 10301) die("skip needs libzstd 1.3.1 or older");
+if (LIBZSTD_VERSION_NUMBER >= 10304) die("skip needs libzstd 1.3.3 or older");
 ?>
 --FILE--
 <?php
@@ -19,14 +19,17 @@ echo "*** Data size ***", PHP_EOL;
 echo strlen($data), PHP_EOL;
 
 echo "*** Compression Level ***", PHP_EOL;
-for ($level = 1; $level <= 22; $level++) {
+for (
+  $level = ZSTD_COMPRESS_LEVEL_MIN;
+  $level <= ZSTD_COMPRESS_LEVEL_MAX;
+  $level++
+) {
   check_compress($data, $level);
 }
 
 echo "*** Invalid Compression Level ***", PHP_EOL;
 check_compress($data, 100);
 check_compress($data, -1);
-check_compress($data, 0);
 ?>
 ===Done===
 --EXPECTF--
@@ -64,9 +67,6 @@ false
 
 Warning: zstd_compress: compression level (-1) must be within 1..22 in %s on line %d
 -1 -- 0 -- 
-Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
-false
-0 -- 3547 -- 
 Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
 false
 ===Done===
