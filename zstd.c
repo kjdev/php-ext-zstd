@@ -68,12 +68,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_dict, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
@@ -251,7 +251,7 @@ ZEND_FUNCTION(zstd_compress_dict)
     zval *data, *dictBuffer;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                              "z|z", &data, &dictBuffer) == FAILURE) {
+                              "zz", &data, &dictBuffer, &level) == FAILURE) {
         RETURN_FALSE;
     }
     if (Z_TYPE_P(data) != IS_STRING) {
@@ -312,7 +312,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     zval *data, *dictBuffer;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                              "z|z", &data, &dictBuffer) == FAILURE) {
+                              "zz", &data, &dictBuffer) == FAILURE) {
         RETURN_FALSE;
     }
     if (Z_TYPE_P(data) != IS_STRING) {
