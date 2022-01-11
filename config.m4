@@ -78,6 +78,7 @@ if test "$PHP_ZSTD" != "no"; then
       zstd/lib/decompress/zstd_ddict.c
       zstd/lib/decompress/zstd_decompress.c
       zstd/lib/decompress/zstd_decompress_block.c
+      zstd/lib/decompress/huf_decompress_amd64.S
     "
 
     PHP_ADD_INCLUDE(PHP_EXT_SRCDIR()/zstd/lib/common)
