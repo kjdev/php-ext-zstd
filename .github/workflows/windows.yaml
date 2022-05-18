@@ -13,8 +13,6 @@ jobs:
         php:
           - '8.1'
           - '8.0'
-          - '7.4'
-          - '7.3'
         arch:
           - x64
           - x86
@@ -23,30 +21,15 @@ jobs:
           - 'ts'
         vc:
           - vs16
-          - vc15
         library:
           - false
           - true
-        include:
-          - vc: vs16
-            os: windows-2019
-          - vc: vc15
-            os: windows-2016
-        exclude:
-          - php: '8.1'
-            vc: vc15
-          - php: '8.0'
-            vc: vc15
-          - php: '7.4'
-            vc: vs16
-          - php: '7.3'
-            vc: vs16
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2019
 
     env:
       PHP_VER: ${{ matrix.php }}
-      VC: ${{ matrix.vc }}
+      VC: vs16
       ARCH: ${{ matrix.arch }}
       TS: ${{ matrix.ts }}
 
@@ -67,12 +50,6 @@ jobs:
 
       - name: Install build command
         run: .\.github\workflows\install.ps1
-        if: ${{ ! matrix.library || matrix.vc == 'vs16' }}
-      - name: Install build command and library
-        run: .\.github\workflows\install.ps1
-        env:
-          DEP: libzstd-1.4.8
-        if: ${{ matrix.library && matrix.vc == 'vc15' }}
 
       - name: Build
         run: .\.github\workflows\build.ps1
