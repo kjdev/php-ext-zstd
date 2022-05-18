@@ -61,8 +61,10 @@ jobs:
           apk upgrade --no-cache
           apk add --no-cache autoconf gcc git libtool make musl-dev
 
+      - name: adding github workspace as safe directory
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Checkout submodules
         run: |
