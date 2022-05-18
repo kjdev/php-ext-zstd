@@ -10,13 +10,11 @@ jobs:
       matrix:
         php:
           - '8.1'
+          - '8.1-zts'
           - '8.0'
+          - '8.0-zts'
           - '7.4'
           - '7.4-zts'
-          - '7.3'
-          - '7.3-zts'
-          - '7.2'
-          - '7.2-zts'
         library:
           - ''
           - 'system'
@@ -25,16 +23,10 @@ jobs:
           - 'apcu'
         image: [php]
         include:
-          - php: '8.1-zts'
+          - php: '7.3'
             image: ghcr.io/kjdev/php
-          - php: '8.1-zts'
+          - php: '7.2'
             image: ghcr.io/kjdev/php
-            library: 'system'
-          - php: '8.0-zts'
-            image: ghcr.io/kjdev/php
-          - php: '8.0-zts'
-            image: ghcr.io/kjdev/php
-            library: 'system'
           - php: '7.1'
             image: ghcr.io/kjdev/php
           - php: '7.0'
