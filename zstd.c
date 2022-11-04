@@ -77,7 +77,7 @@ ZEND_END_ARG_INFO()
 
 ZEND_FUNCTION(zstd_compress)
 {
-    char *output;
+    zend_string *output;
     size_t size, result;
     long level = DEFAULT_COMPRESS_LEVEL;
     uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
@@ -121,27 +121,26 @@ ZEND_FUNCTION(zstd_compress)
     }
 
     size = ZSTD_compressBound(input_len);
-    output = (char *)emalloc(size + 1);
+    output = zend_string_alloc(size, 0);
 
-    result = ZSTD_compress(output, size, input, input_len,
+    result = ZSTD_compress(ZSTR_VAL(output), size, input, input_len,
                            level);
 
-    if (ZSTD_isError(result)) {
-        RETVAL_FALSE;
-    } else if (result <= 0) {
+    if (ZSTD_isError(result) || result <= 0) {
+        zend_string_efree(output);
         RETVAL_FALSE;
     } else {
-        RETVAL_STRINGL(output, result);
+        output = zend_string_truncate(output, result, 0);
+        ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+        RETVAL_STR(output);
     }
-
-    efree(output);
 }
 
 ZEND_FUNCTION(zstd_uncompress)
 {
     uint64_t size;
     size_t result;
-    void *output;
+    zend_string *output;
     uint8_t streaming = 0;
 
     char *input;
@@ -178,10 +177,10 @@ ZEND_FUNCTION(zstd_uncompress)
         size = ZSTD_DStreamOutSize();
     }
 
-    output = emalloc(size);
+    output = zend_string_alloc(size, 0);
 
     if (!streaming) {
-        result = ZSTD_decompress(output, size,
+        result = ZSTD_decompress(ZSTR_VAL(output), size,
                                  input, input_len);
     } else {
         ZSTD_DStream *stream;
@@ -190,14 +189,14 @@ ZEND_FUNCTION(zstd_uncompress)
 
         stream = ZSTD_createDStream();
         if (stream == NULL) {
-            efree(output);
+            zend_string_efree(output);
             zend_error(E_WARNING, "zstd_uncompress: can not create stream");
             RETURN_FALSE;
         }
 
         result = ZSTD_initDStream(stream);
         if (ZSTD_isError(result)) {
-            efree(output);
+            zend_string_efree(output);
             ZSTD_freeDStream(stream);
             zend_error(E_WARNING, "zstd_uncompress: can not init stream");
             RETURN_FALSE;
@@ -207,20 +206,20 @@ ZEND_FUNCTION(zstd_uncompress)
         in.size = input_len;
         in.pos = 0;
 
-        out.dst = output;
+        out.dst = ZSTR_VAL(output);
         out.size = size;
         out.pos = 0;
 
         while (in.pos < in.size) {
             if (out.pos == out.size) {
                 out.size += size;
-                output = erealloc(output, out.size);
-                out.dst = output;
+                output = zend_string_extend(output, out.size, 0);
+                out.dst = ZSTR_VAL(output);
             }
 
             result = ZSTD_decompressStream(stream, &out, &in);
             if (ZSTD_isError(result)) {
-                efree(output);
+                zend_string_efree(output);
                 ZSTD_freeDStream(stream);
                 zend_error(E_WARNING,
                            "zstd_uncompress: can not decompress stream");
@@ -237,15 +236,14 @@ ZEND_FUNCTION(zstd_uncompress)
         ZSTD_freeDStream(stream);
     }
 
-    if (ZSTD_isError(result)) {
-        RETVAL_FALSE;
-    } else if (result < 0) {
+    if (ZSTD_isError(result) || result < 0) {
+        zend_string_efree(output);
         RETVAL_FALSE;
     } else {
-        RETVAL_STRINGL(output, result);
+        output = zend_string_truncate(output, result, 0);
+        ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+        RETVAL_STR(output);
     }
-
-    efree(output);
 }
 
 ZEND_FUNCTION(zstd_compress_dict)
