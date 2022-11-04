@@ -33,15 +33,16 @@ try {
 ===DONE===
 --EXPECTF--
 *** Testing zstd_uncompress() function with Zero arguments ***
-ArgumentCountError: zstd_uncompress() expects exactly 1 %s, 0 given in %s:%d
+ArgumentCountError: zstd_uncompress() expects exactly 1 argument, 0 given in %s:%d
 Stack trace:
 #0 %s(%d): zstd_uncompress()
 #1 {main}
 *** Testing with incorrect arguments ***
 
-Warning: zstd_uncompress: expects parameter to be string. in %s on line %d
+Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
 bool(false)
-
-Warning: zstd_uncompress: expects parameter to be string. in %s on line %d
-bool(false)
+TypeError: zstd_uncompress(): Argument #1 ($data) must be of type string, Tester given in %s:%d
+Stack trace:
+#0 %s(%d): zstd_uncompress(Object(Tester))
+#1 {main}
 ===DONE===

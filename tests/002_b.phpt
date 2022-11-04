@@ -29,12 +29,13 @@ try {
 ===Done===
 --EXPECTF--
 *** Testing zstd_compress() function with Zero arguments ***
-ArgumentCountError: zstd_compress() expects at least 1 %s, 0 given in %s:%d
+ArgumentCountError: zstd_compress() expects at least 1 argument, 0 given in %s:%d
 Stack trace:
 #0 %s(%d): zstd_compress()
 #1 {main}
 *** Testing with incorrect parameters ***
-
-Warning: zstd_compress: expects parameter to be string. in %s on line %d
-bool(false)
+TypeError: zstd_compress(): Argument #1 ($data) must be of type string, Tester given in %s:%d
+Stack trace:
+#0 %s(%d): zstd_compress(Object(Tester))
+#1 {main}
 ===Done===

@@ -77,13 +77,24 @@ ZEND_END_ARG_INFO()
 
 ZEND_FUNCTION(zstd_compress)
 {
-    zval *data;
     char *output;
     size_t size, result;
     long level = DEFAULT_COMPRESS_LEVEL;
     uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
+    char *input;
+    size_t input_len;
+
+#ifdef FAST_ZPP
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_STRING(input, input_len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(level)
+    ZEND_PARSE_PARAMETERS_END();
+#else
+    zval *data;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z|l", &data, &level) == FAILURE) {
         RETURN_FALSE;
     }
@@ -93,6 +104,9 @@ ZEND_FUNCTION(zstd_compress)
         RETURN_FALSE;
     }
 
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+#endif
 
 #if ZSTD_VERSION_NUMBER >= 10304
     if (level > maxLevel) {
@@ -106,14 +120,14 @@ ZEND_FUNCTION(zstd_compress)
       RETURN_FALSE;
     }
 
-    size = ZSTD_compressBound(Z_STRLEN_P(data));
+    size = ZSTD_compressBound(input_len);
     output = (char *)emalloc(size + 1);
     if (!output) {
         zend_error(E_WARNING, "zstd_compress: memory error");
         RETURN_FALSE;
     }
 
-    result = ZSTD_compress(output, size, Z_STRVAL_P(data), Z_STRLEN_P(data),
+    result = ZSTD_compress(output, size, input, input_len,
                            level);
 
     if (ZSTD_isError(result)) {
@@ -129,11 +143,20 @@ ZEND_FUNCTION(zstd_compress)
 
 ZEND_FUNCTION(zstd_uncompress)
 {
-    zval *data;
     uint64_t size;
     size_t result;
     void *output;
     uint8_t streaming = 0;
+
+    char *input;
+    size_t input_len;
+
+#ifdef FAST_ZPP
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(input, input_len)
+    ZEND_PARSE_PARAMETERS_END();
+#else
+    zval *data;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS(),
                               "z", &data) == FAILURE) {
@@ -146,7 +169,11 @@ ZEND_FUNCTION(zstd_uncompress)
         RETURN_FALSE;
     }
 
-    size = ZSTD_getFrameContentSize(Z_STRVAL_P(data), Z_STRLEN_P(data));
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+#endif
+
+    size = ZSTD_getFrameContentSize(input, input_len);
     if (size == ZSTD_CONTENTSIZE_ERROR) {
         zend_error(E_WARNING, "zstd_uncompress: it was not compressed by zstd");
         RETURN_FALSE;
@@ -163,7 +190,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
     if (!streaming) {
         result = ZSTD_decompress(output, size,
-                                 Z_STRVAL_P(data), Z_STRLEN_P(data));
+                                 input, input_len);
     } else {
         ZSTD_DStream *stream;
         ZSTD_inBuffer in = { NULL, 0, 0 };
@@ -184,8 +211,8 @@ ZEND_FUNCTION(zstd_uncompress)
             RETURN_FALSE;
         }
 
-        in.src = Z_STRVAL_P(data);
-        in.size = Z_STRLEN_P(data);
+        in.src = input;
+        in.size = input_len;
         in.pos = 0;
 
         out.dst = output;
@@ -231,10 +258,21 @@ ZEND_FUNCTION(zstd_uncompress)
 
 ZEND_FUNCTION(zstd_compress_dict)
 {
-    zval *data, *dictBuffer;
     long level = DEFAULT_COMPRESS_LEVEL;
     uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
+    char *input, *dict;
+    size_t input_len, dict_len;
+
+#ifdef FAST_ZPP
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_STRING(input, input_len)
+        Z_PARAM_STRING(dict, dict_len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(level)
+    ZEND_PARSE_PARAMETERS_END();
+#else
+    zval *data, *dictBuffer;
     if (zend_parse_parameters(ZEND_NUM_ARGS(),
                               "zz|l", &data, &dictBuffer, &level) == FAILURE) {
         RETURN_FALSE;
@@ -250,6 +288,12 @@ ZEND_FUNCTION(zstd_compress_dict)
         RETURN_FALSE;
     }
 
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+    dict = Z_STRVAL_P(dictBuffer);
+    dict_len = Z_STRLEN_P(dictBuffer);
+#endif
+
 #if ZSTD_VERSION_NUMBER >= 10304
     if (level > maxLevel) {
       zend_error(E_WARNING, "zstd_compress_dict: compression level (%ld)"
@@ -262,7 +306,7 @@ ZEND_FUNCTION(zstd_compress_dict)
       RETURN_FALSE;
     }
 
-    size_t const cBuffSize = ZSTD_compressBound(Z_STRLEN_P(data));
+    size_t const cBuffSize = ZSTD_compressBound(input_len);
     void* const cBuff = emalloc(cBuffSize);
     if (!cBuff) {
         zend_error(E_WARNING, "zstd_compress_dict: memory error");
@@ -274,8 +318,8 @@ ZEND_FUNCTION(zstd_compress_dict)
         zend_error(E_WARNING, "ZSTD_createCCtx() error");
         RETURN_FALSE;
     }
-    ZSTD_CDict* const cdict = ZSTD_createCDict(Z_STRVAL_P(dictBuffer),
-                                               Z_STRLEN_P(dictBuffer),
+    ZSTD_CDict* const cdict = ZSTD_createCDict(dict,
+                                               dict_len,
                                                level);
     if (!cdict) {
         efree(cBuff);
@@ -283,8 +327,8 @@ ZEND_FUNCTION(zstd_compress_dict)
         RETURN_FALSE;
     }
     size_t const cSize = ZSTD_compress_usingCDict(cctx, cBuff, cBuffSize,
-                                                  Z_STRVAL_P(data),
-                                                  Z_STRLEN_P(data),
+                                                  input,
+                                                  input_len,
                                                   cdict);
     if (ZSTD_isError(cSize)) {
         efree(cBuff);
@@ -302,6 +346,16 @@ ZEND_FUNCTION(zstd_compress_dict)
 
 ZEND_FUNCTION(zstd_uncompress_dict)
 {
+
+    char *input, *dict;
+    size_t input_len, dict_len;
+
+#ifdef FAST_ZPP
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(input, input_len)
+        Z_PARAM_STRING(dict, dict_len)
+    ZEND_PARSE_PARAMETERS_END();
+#else
     zval *data, *dictBuffer;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS(),
@@ -319,8 +373,14 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         RETURN_FALSE;
     }
 
-    unsigned long long const rSize = ZSTD_getDecompressedSize(Z_STRVAL_P(data),
-                                                              Z_STRLEN_P(data));
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+    dict = Z_STRVAL_P(dictBuffer);
+    dict_len = Z_STRLEN_P(dictBuffer);
+#endif
+
+    unsigned long long const rSize = ZSTD_getDecompressedSize(input,
+                                                              input_len);
     if (rSize == 0) {
         zend_error(E_WARNING, "zstd_uncompress_dict:"
                    " it was not compressed by zstd");
@@ -338,16 +398,16 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         zend_error(E_WARNING, "ZSTD_createDCtx() error");
         RETURN_FALSE;
     }
-    ZSTD_DDict* const ddict = ZSTD_createDDict(Z_STRVAL_P(dictBuffer),
-                                               Z_STRLEN_P(dictBuffer));
+    ZSTD_DDict* const ddict = ZSTD_createDDict(dict,
+                                               dict_len);
     if (!ddict) {
         efree(rBuff);
         zend_error(E_WARNING, "ZSTD_createDDict() error");
         RETURN_FALSE;
     }
     size_t const dSize = ZSTD_decompress_usingDDict(dctx, rBuff, rSize,
-                                                    Z_STRVAL_P(data),
-                                                    Z_STRLEN_P(data),
+                                                    input,
+                                                    input_len,
                                                     ddict);
     if (dSize != rSize) {
         efree(rBuff);
