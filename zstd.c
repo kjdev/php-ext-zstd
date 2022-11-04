@@ -122,10 +122,6 @@ ZEND_FUNCTION(zstd_compress)
 
     size = ZSTD_compressBound(input_len);
     output = (char *)emalloc(size + 1);
-    if (!output) {
-        zend_error(E_WARNING, "zstd_compress: memory error");
-        RETURN_FALSE;
-    }
 
     result = ZSTD_compress(output, size, input, input_len,
                            level);
@@ -183,10 +179,6 @@ ZEND_FUNCTION(zstd_uncompress)
     }
 
     output = emalloc(size);
-    if (!output) {
-        zend_error(E_WARNING, "zstd_uncompress: memory error");
-        RETURN_FALSE;
-    }
 
     if (!streaming) {
         result = ZSTD_decompress(output, size,
@@ -308,10 +300,7 @@ ZEND_FUNCTION(zstd_compress_dict)
 
     size_t const cBuffSize = ZSTD_compressBound(input_len);
     void* const cBuff = emalloc(cBuffSize);
-    if (!cBuff) {
-        zend_error(E_WARNING, "zstd_compress_dict: memory error");
-        RETURN_FALSE;
-    }
+
     ZSTD_CCtx* const cctx = ZSTD_createCCtx();
     if (cctx == NULL) {
         efree(cBuff);
@@ -387,10 +376,6 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         RETURN_FALSE;
     }
     void* const rBuff = emalloc((size_t)rSize);
-    if (!rBuff) {
-        zend_error(E_WARNING, "zstd_uncompress_dict: memory error");
-        RETURN_FALSE;
-    }
 
     ZSTD_DCtx* const dctx = ZSTD_createDCtx();
     if (dctx == NULL) {
@@ -901,10 +886,6 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
 
     size = ZSTD_compressBound(ZSTR_LEN(var.s));
     *buf = (char*) emalloc(size + 1);
-    if (*buf == NULL) {
-        *buf_len = 0;
-        return 0;
-    }
 
     *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
                              DEFAULT_COMPRESS_LEVEL);
@@ -939,10 +920,6 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     }
 
     var = emalloc(size);
-    if (!var) {
-        ZVAL_NULL(value);
-        return 0;
-    }
 
     var_len = ZSTD_decompress(var, size, buf, buf_len);
     if (ZSTD_isError(var_len) || var_len == 0) {
