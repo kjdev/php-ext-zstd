@@ -71,7 +71,7 @@ check_compress($data, $dictionary, 100);
 -5 -- 142 -- %d -- true
 *** Invalid Compression Level ***
 
-Warning: zstd_compress_dict: compression level (100) must be within 1..22 or smaller then 0 in %s on line %d
+Warning: zstd_compress_dict(): compression level (100) must be within 1..22 or smaller then 0 in %s on line %d
 100 -- 142 -- 0 -- 
 Warning: zstd_uncompress_dict: it was not compressed by zstd in %s
 false

@@ -75,12 +75,31 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
 
+bool zstd_check_compress_level(long level)
+{
+    uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
+
+#if ZSTD_VERSION_NUMBER >= 10304
+    if (level > maxLevel) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "compression level (%ld)"
+            " must be within 1..%d or smaller then 0", level, maxLevel);
+      return false;
+    }
+#else
+    if (level > maxLevel || level < 0) {
+      php_error_docref(NULL, TSRMLS_CC, E_WARNING, "zstd_compress_dict: compression level (%ld)"
+                 " must be within 1..%d", level, maxLevel);
+      return false;
+    }
+#endif
+    return true;
+}
+
 ZEND_FUNCTION(zstd_compress)
 {
     zend_string *output;
     size_t size, result;
     long level = DEFAULT_COMPRESS_LEVEL;
-    uint16_t maxLevel = (uint16_t)ZSTD_maxCLevel();
 
     char *input;
     size_t input_len;
@@ -108,16 +127,8 @@ ZEND_FUNCTION(zstd_compress)
     input_len = Z_STRLEN_P(data);
 #endif
 
-#if ZSTD_VERSION_NUMBER >= 10304
-    if (level > maxLevel) {
-      zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
-                 " must be within 1..%d or smaller then 0", level, maxLevel);
-#else
-    if (level > maxLevel || level < 0) {
-      zend_error(E_WARNING, "zstd_compress: compression level (%ld)"
-                 " must be within 1..%d", level, maxLevel);
-#endif
-      RETURN_FALSE;
+    if (!zstd_check_compress_level(level)) {
+        RETURN_FALSE;
     }
 
     size = ZSTD_compressBound(input_len);
@@ -249,7 +260,6 @@ ZEND_FUNCTION(zstd_uncompress)
 ZEND_FUNCTION(zstd_compress_dict)
 {
     long level = DEFAULT_COMPRESS_LEVEL;
-    uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
     char *input, *dict;
     size_t input_len, dict_len;
@@ -284,16 +294,8 @@ ZEND_FUNCTION(zstd_compress_dict)
     dict_len = Z_STRLEN_P(dictBuffer);
 #endif
 
-#if ZSTD_VERSION_NUMBER >= 10304
-    if (level > maxLevel) {
-      zend_error(E_WARNING, "zstd_compress_dict: compression level (%ld)"
-                 " must be within 1..%d or smaller then 0", level, maxLevel);
-#else
-    if (level > maxLevel || level < 0) {
-      zend_error(E_WARNING, "zstd_compress_dict: compression level (%ld)"
-                 " must be within 1..%d", level, maxLevel);
-#endif
-      RETURN_FALSE;
+    if (!zstd_check_compress_level(level)) {
+        RETURN_FALSE;
     }
 
     size_t const cBuffSize = ZSTD_compressBound(input_len);
