@@ -1,8 +1,6 @@
 --TEST--
 namespace: Zstd\compress()/uncompress()
 --SKIPIF--
-<?php
-if (PHP_VERSION_ID < 50300) die("skip requires PHP 5.3+");
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');

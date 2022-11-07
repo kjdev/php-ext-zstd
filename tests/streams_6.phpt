@@ -2,7 +2,6 @@
 compress.zstd read online stream
 --SKIPIF--
 <?php
-if (PHP_VERSION_ID < 50400) die("skip requires PHP 5.4+");
 if (getenv("SKIP_ONLINE_TESTS")) die('skip online test');
 if (!extension_loaded('openssl')) die('skip reqiures ext-openssl for https stream');
 ?>

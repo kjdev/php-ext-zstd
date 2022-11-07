@@ -5,19 +5,11 @@ apc.enable_cli=1
 apc.serializer=zstd
 --SKIPIF--
 <?php
-if (PHP_VERSION_ID < 70000) {
-  echo 'skip need version: 7.0+';
-  die;
-}
 if (!extension_loaded('apcu')) {
   echo 'skip need apcu';
   die;
 }
 $ext = new ReflectionExtension('apcu');
-if (version_compare($ext->getVersion(), '5.1.6') < 0) {
-  echo 'skip require apcu version 5.1.6 or above';
-  die;
-}
 ?>
 --FILE--
 <?php
