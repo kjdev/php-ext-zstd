@@ -23,9 +23,9 @@ var_dump(zstd_compress($testclass));
 *** Testing zstd_compress() function with Zero arguments ***
 
 Warning: zstd_compress() expects at least 1 parameter, 0 given in %s on line %d
-bool(false)
+NULL
 *** Testing with incorrect parameters ***
 
-Warning: zstd_compress: expects parameter to be string. in %s on line %d
-bool(false)
+Warning: zstd_compress() expects parameter 1 to be string, object given in %s on line %d
+NULL
 ===Done===
