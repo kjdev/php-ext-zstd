@@ -49,11 +49,12 @@
 #define ZSTD_CLEVEL_DEFAULT 3
 #endif
 
-#define FRAME_HEADER_SIZE 5
-#define BLOCK_HEADER_SIZE 3
-#define MAX_HEADER_SIZE FRAME_HEADER_SIZE+3
-
 #define DEFAULT_COMPRESS_LEVEL 3
+
+// zend_string_efree doesnt exist in PHP7.2, 20180731 is PHP 7.3
+#if ZEND_MODULE_API_NO < 20180731
+#define zend_string_efree(string) zend_string_free(string)
+#endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
@@ -75,7 +76,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
 
-bool zstd_check_compress_level(long level)
+size_t zstd_check_compress_level(long level)
 {
     uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
@@ -83,16 +84,16 @@ bool zstd_check_compress_level(long level)
     if (level > maxLevel) {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "compression level (%ld)"
             " must be within 1..%d or smaller then 0", level, maxLevel);
-      return false;
+      return 0;
     }
 #else
     if (level > maxLevel || level < 0) {
       php_error_docref(NULL, TSRMLS_CC, E_WARNING, "zstd_compress_dict: compression level (%ld)"
                  " must be within 1..%d", level, maxLevel);
-      return false;
+      return 0;
     }
 #endif
-    return true;
+    return 1;
 }
 
 ZEND_FUNCTION(zstd_compress)
@@ -115,12 +116,12 @@ ZEND_FUNCTION(zstd_compress)
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                               "z|l", &data, &level) == FAILURE) {
-        RETURN_FALSE;
+        RETURN_NULL();
     }
 
     if (Z_TYPE_P(data) != IS_STRING) {
         zend_error(E_WARNING, "zstd_compress: expects parameter to be string.");
-        RETURN_FALSE;
+        RETURN_NULL();
     }
 
     input = Z_STRVAL_P(data);
@@ -166,13 +167,13 @@ ZEND_FUNCTION(zstd_uncompress)
 
     if (zend_parse_parameters(ZEND_NUM_ARGS(),
                               "z", &data) == FAILURE) {
-        RETURN_FALSE;
+        RETURN_NULL();
     }
 
     if (Z_TYPE_P(data) != IS_STRING) {
         zend_error(E_WARNING,
                    "zstd_uncompress: expects parameter to be string.");
-        RETURN_FALSE;
+        RETURN_NULL();
     }
 
     input = Z_STRVAL_P(data);
