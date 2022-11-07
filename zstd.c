@@ -28,12 +28,8 @@
 #include <php.h>
 #include <php_ini.h>
 #include <ext/standard/info.h>
-#if ZEND_MODULE_API_NO >= 20141001
 #include <ext/standard/php_smart_string.h>
-#else
-#include <ext/standard/php_smart_str.h>
-#endif
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
 #include <ext/standard/php_var.h>
 #include <ext/apcu/apc_serializer.h>
 #include <zend_smart_str.h>
@@ -125,11 +121,7 @@ ZEND_FUNCTION(zstd_compress)
     } else if (result <= 0) {
         RETVAL_FALSE;
     } else {
-#if ZEND_MODULE_API_NO >= 20141001
         RETVAL_STRINGL(output, result);
-#else
-        RETVAL_STRINGL(output, result, 1);
-#endif
     }
 
     efree(output);
@@ -231,11 +223,7 @@ ZEND_FUNCTION(zstd_uncompress)
     } else if (result < 0) {
         RETVAL_FALSE;
     } else {
-#if ZEND_MODULE_API_NO >= 20141001
         RETVAL_STRINGL(output, result);
-#else
-        RETVAL_STRINGL(output, result, 1);
-#endif
     }
 
     efree(output);
@@ -307,11 +295,7 @@ ZEND_FUNCTION(zstd_compress_dict)
     ZSTD_freeCCtx(cctx);
     ZSTD_freeCDict(cdict);
 
-#if ZEND_MODULE_API_NO >= 20141001
     RETVAL_STRINGL(cBuff, cSize);
-#else
-    RETVAL_STRINGL(cBuff, cSize, 1);
-#endif
 
     efree(cBuff);
 }
@@ -374,11 +358,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     ZSTD_freeDCtx(dctx);
     ZSTD_freeDDict(ddict);
 
-#if ZEND_MODULE_API_NO >= 20141001
     RETVAL_STRINGL(rBuff, rSize);
-#else
-    RETVAL_STRINGL(rBuff, rSize, 1);
-#endif
 
     efree(rBuff);
 }
@@ -652,19 +632,10 @@ static php_stream_ops php_stream_zstd_write_ops = {
 static php_stream *
 php_stream_zstd_opener(
     php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-    char *path,
-    char *mode,
-#else
     const char *path,
     const char *mode,
-#endif
     int options,
-#if PHP_MAJOR_VERSION < 7
-    char **opened_path,
-#else
     zend_string **opened_path,
-#endif
     php_stream_context *context
     STREAMS_DC TSRMLS_DC)
 {
@@ -697,7 +668,6 @@ php_stream_zstd_opener(
     }
 
     if (context) {
-#if PHP_MAJOR_VERSION >= 7
         zval *tmpzval;
         zend_string *data;
 
@@ -714,24 +684,6 @@ php_stream_zstd_opener(
             }
             zend_string_release(data);
         }
-#endif
-#else
-        zval **tmpzval;
-
-        if (php_stream_context_get_option(context, "zstd", "level", &tmpzval) == SUCCESS) {
-            convert_to_long_ex(tmpzval);
-            level = Z_LVAL_PP(tmpzval);
-        }
-#if ZSTD_VERSION_NUMBER >= 10400
-        if (php_stream_context_get_option(context, "zstd", "dict", &tmpzval) == SUCCESS) {
-            convert_to_string(*tmpzval);
-            if (compress) {
-                cdict = ZSTD_createCDict(Z_STRVAL_PP(tmpzval), Z_STRLEN_PP(tmpzval), level);
-            } else {
-                ddict = ZSTD_createDDict(Z_STRVAL_PP(tmpzval), Z_STRLEN_PP(tmpzval));
-            }
-        }
-#endif
 #endif
     }
 
@@ -815,10 +767,8 @@ static php_stream_wrapper_ops zstd_stream_wops = {
     NULL,    /* unlink */
     NULL,    /* rename */
     NULL,    /* mkdir */
-    NULL    /* rmdir */
-#if PHP_VERSION_ID >= 50400
-    , NULL
-#endif
+    NULL,    /* rmdir */
+    NULL
 };
 
 
@@ -828,7 +778,7 @@ php_stream_wrapper php_stream_zstd_wrapper = {
     0 /* is_url */
 };
 
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
 static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
 {
     int result;
@@ -938,7 +888,7 @@ ZEND_MINIT_FUNCTION(zstd)
 
     php_register_url_stream_wrapper(STREAM_NAME, &php_stream_zstd_wrapper TSRMLS_CC);
 
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
     apc_register_serializer("zstd",
                             APC_SERIALIZER_NAME(zstd),
                             APC_UNSERIALIZER_NAME(zstd),
@@ -954,7 +904,7 @@ ZEND_MINFO_FUNCTION(zstd)
     php_info_print_table_row(2, "Zstd support", "enabled");
     php_info_print_table_row(2, "Extension Version", PHP_ZSTD_EXT_VERSION);
     php_info_print_table_row(2, "Interface Version", ZSTD_VERSION_STRING);
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
     php_info_print_table_row(2, "APCu serializer ABI", APC_SERIALIZER_ABI);
 #endif
     php_info_print_table_end();
@@ -976,8 +926,6 @@ static zend_function_entry zstd_functions[] = {
     ZEND_FALIAS(zstd_decompress_usingcdict,
                 zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
 
-// PHP 5.3+
-#if ZEND_MODULE_API_NO >= 20090626
     ZEND_NS_FALIAS(PHP_ZSTD_NS, compress,
                    zstd_compress, arginfo_zstd_compress)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress,
@@ -996,11 +944,11 @@ static zend_function_entry zstd_functions[] = {
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
-#endif
+
     {NULL, NULL, NULL}
 };
 
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
 static const zend_module_dep zstd_module_deps[] = {
     ZEND_MOD_OPTIONAL("apcu")
     ZEND_MOD_END
@@ -1008,11 +956,11 @@ static const zend_module_dep zstd_module_deps[] = {
 #endif
 
 zend_module_entry zstd_module_entry = {
-#if PHP_MAJOR_VERSION >= 7 && defined(HAVE_APCU_SUPPORT)
+#if defined(HAVE_APCU_SUPPORT)
     STANDARD_MODULE_HEADER_EX,
     NULL,
     zstd_module_deps,
-#elif ZEND_MODULE_API_NO >= 20010901
+#else
     STANDARD_MODULE_HEADER,
 #endif
     "zstd",
@@ -1022,9 +970,7 @@ zend_module_entry zstd_module_entry = {
     NULL,
     NULL,
     ZEND_MINFO(zstd),
-#if ZEND_MODULE_API_NO >= 20010901
     PHP_ZSTD_EXT_VERSION,
-#endif
     STANDARD_MODULE_PROPERTIES
 };
 
