@@ -111,28 +111,11 @@ ZEND_FUNCTION(zstd_compress)
     char *input;
     size_t input_len;
 
-#ifdef FAST_ZPP
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
     ZEND_PARSE_PARAMETERS_END();
-#else
-    zval *data;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                              "z|l", &data, &level) == FAILURE) {
-        RETURN_NULL();
-    }
-
-    if (Z_TYPE_P(data) != IS_STRING) {
-        ZSTD_WARNING("expects parameter to be string.");
-        RETURN_NULL();
-    }
-
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-#endif
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -164,26 +147,9 @@ ZEND_FUNCTION(zstd_uncompress)
     char *input;
     size_t input_len;
 
-#ifdef FAST_ZPP
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(input, input_len)
     ZEND_PARSE_PARAMETERS_END();
-#else
-    zval *data;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
-                              "z", &data) == FAILURE) {
-        RETURN_NULL();
-    }
-
-    if (Z_TYPE_P(data) != IS_STRING) {
-        ZSTD_WARNING("expects parameter to be string.");
-        RETURN_NULL();
-    }
-
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-#endif
 
     size = ZSTD_getFrameContentSize(input, input_len);
     if (size == ZSTD_CONTENTSIZE_ERROR) {
@@ -271,35 +237,12 @@ ZEND_FUNCTION(zstd_compress_dict)
     char *input, *dict;
     size_t input_len, dict_len;
 
-#ifdef FAST_ZPP
     ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_STRING(dict, dict_len)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
     ZEND_PARSE_PARAMETERS_END();
-#else
-    zval *data, *dictBuffer;
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
-                              "zz|l", &data, &dictBuffer, &level) == FAILURE) {
-        RETURN_FALSE;
-    }
-    if (Z_TYPE_P(data) != IS_STRING) {
-        zend_error(E_WARNING, "zstd_compress_dict:"
-                   " expects the first parameter to be string.");
-        RETURN_FALSE;
-    }
-    if (Z_TYPE_P(dictBuffer) != IS_STRING) {
-        zend_error(E_WARNING, "zstd_compress_dict:"
-                   " expects the second parameter to be string.");
-        RETURN_FALSE;
-    }
-
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-    dict = Z_STRVAL_P(dictBuffer);
-    dict_len = Z_STRLEN_P(dictBuffer);
-#endif
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -346,34 +289,10 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     char *input, *dict;
     size_t input_len, dict_len;
 
-#ifdef FAST_ZPP
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_STRING(dict, dict_len)
     ZEND_PARSE_PARAMETERS_END();
-#else
-    zval *data, *dictBuffer;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
-                              "zz", &data, &dictBuffer) == FAILURE) {
-        RETURN_FALSE;
-    }
-    if (Z_TYPE_P(data) != IS_STRING) {
-        zend_error(E_WARNING, "zstd_uncompress_dict:"
-                   " expects the first parameter to be string.");
-        RETURN_FALSE;
-    }
-    if (Z_TYPE_P(dictBuffer) != IS_STRING) {
-        zend_error(E_WARNING, "zstd_uncompress_dict:"
-                   " expects the second parameter to be string.");
-        RETURN_FALSE;
-    }
-
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-    dict = Z_STRVAL_P(dictBuffer);
-    dict_len = Z_STRLEN_P(dictBuffer);
-#endif
 
     unsigned long long const rSize = ZSTD_getDecompressedSize(input,
                                                               input_len);
