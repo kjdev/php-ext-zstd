@@ -56,6 +56,12 @@
 #define zend_string_efree(string) zend_string_free(string)
 #endif
 
+#define ZSTD_WARNING(...) \
+    php_error_docref(NULL, E_WARNING, __VA_ARGS__)
+
+#define ZSTD_IS_ERROR(result) \
+    UNEXPECTED(ZSTD_isError(result))
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, level)
@@ -82,13 +88,13 @@ size_t zstd_check_compress_level(long level)
 
 #if ZSTD_VERSION_NUMBER >= 10304
     if (level > maxLevel) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "compression level (%ld)"
+        ZSTD_WARNING("compression level (%ld)"
             " must be within 1..%d or smaller then 0", level, maxLevel);
       return 0;
     }
 #else
     if (level > maxLevel || level < 0) {
-      php_error_docref(NULL, TSRMLS_CC, E_WARNING, "zstd_compress_dict: compression level (%ld)"
+      ZSTD_WARNING("compression level (%ld)"
                  " must be within 1..%d", level, maxLevel);
       return 0;
     }
@@ -120,7 +126,7 @@ ZEND_FUNCTION(zstd_compress)
     }
 
     if (Z_TYPE_P(data) != IS_STRING) {
-        zend_error(E_WARNING, "zstd_compress: expects parameter to be string.");
+        ZSTD_WARNING("expects parameter to be string.");
         RETURN_NULL();
     }
 
@@ -138,7 +144,7 @@ ZEND_FUNCTION(zstd_compress)
     result = ZSTD_compress(ZSTR_VAL(output), size, input, input_len,
                            level);
 
-    if (ZSTD_isError(result) || result <= 0) {
+    if (ZSTD_IS_ERROR(result)) {
         zend_string_efree(output);
         RETVAL_FALSE;
     } else {
@@ -171,8 +177,7 @@ ZEND_FUNCTION(zstd_uncompress)
     }
 
     if (Z_TYPE_P(data) != IS_STRING) {
-        zend_error(E_WARNING,
-                   "zstd_uncompress: expects parameter to be string.");
+        ZSTD_WARNING("expects parameter to be string.");
         RETURN_NULL();
     }
 
@@ -182,7 +187,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
     size = ZSTD_getFrameContentSize(input, input_len);
     if (size == ZSTD_CONTENTSIZE_ERROR) {
-        zend_error(E_WARNING, "zstd_uncompress: it was not compressed by zstd");
+        ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
     } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
         streaming = 1;
@@ -194,6 +199,13 @@ ZEND_FUNCTION(zstd_uncompress)
     if (!streaming) {
         result = ZSTD_decompress(ZSTR_VAL(output), size,
                                  input, input_len);
+
+        if (ZSTD_IS_ERROR(result)) {
+            zend_string_efree(output);
+            ZSTD_WARNING("can not decompress stream");
+            RETURN_FALSE;
+        }
+
     } else {
         ZSTD_DStream *stream;
         ZSTD_inBuffer in = { NULL, 0, 0 };
@@ -202,15 +214,15 @@ ZEND_FUNCTION(zstd_uncompress)
         stream = ZSTD_createDStream();
         if (stream == NULL) {
             zend_string_efree(output);
-            zend_error(E_WARNING, "zstd_uncompress: can not create stream");
+            ZSTD_WARNING("can not create stream");
             RETURN_FALSE;
         }
 
         result = ZSTD_initDStream(stream);
-        if (ZSTD_isError(result)) {
+        if (ZSTD_IS_ERROR(result)) {
             zend_string_efree(output);
             ZSTD_freeDStream(stream);
-            zend_error(E_WARNING, "zstd_uncompress: can not init stream");
+            ZSTD_WARNING("can not init stream");
             RETURN_FALSE;
         }
 
@@ -233,8 +245,7 @@ ZEND_FUNCTION(zstd_uncompress)
             if (ZSTD_isError(result)) {
                 zend_string_efree(output);
                 ZSTD_freeDStream(stream);
-                zend_error(E_WARNING,
-                           "zstd_uncompress: can not decompress stream");
+                ZSTD_WARNING("can not decompress stream");
                 RETURN_FALSE;
             }
 
@@ -248,14 +259,9 @@ ZEND_FUNCTION(zstd_uncompress)
         ZSTD_freeDStream(stream);
     }
 
-    if (ZSTD_isError(result) || result < 0) {
-        zend_string_efree(output);
-        RETVAL_FALSE;
-    } else {
-        output = zend_string_truncate(output, result, 0);
-        ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
-        RETVAL_STR(output);
-    }
+    output = zend_string_truncate(output, result, 0);
+    ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+    RETVAL_STR(output);
 }
 
 ZEND_FUNCTION(zstd_compress_dict)
