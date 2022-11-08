@@ -82,7 +82,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
 
-size_t zstd_check_compress_level(long level)
+static size_t zstd_check_compress_level(long level)
 {
     uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
@@ -100,6 +100,21 @@ size_t zstd_check_compress_level(long level)
     }
 #endif
     return 1;
+}
+
+// Truncate string to given size
+static zend_always_inline zend_string* zstd_string_output_truncate(zend_string* output, size_t real_length)
+{
+    size_t capacity = ZSTR_LEN(output);
+    size_t free_space = capacity - real_length;
+
+    // Reallocate just when capacity and real size differs a lot or the free space is bigger than 1 MB
+    if (UNEXPECTED(free_space > (capacity / 8) || free_space > (1024 * 1024))) {
+        output = zend_string_truncate(output, real_length, 0);
+    }
+    ZSTR_LEN(output) = real_length;
+    ZSTR_VAL(output)[real_length] = '\0';
+    return output;
 }
 
 ZEND_FUNCTION(zstd_compress)
@@ -132,8 +147,7 @@ ZEND_FUNCTION(zstd_compress)
         RETVAL_FALSE;
     }
 
-    output = zend_string_truncate(output, result, 0);
-    ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+    output = zstd_string_output_truncate(output, result);
     RETVAL_NEW_STR(output);
 }
 
@@ -225,8 +239,7 @@ ZEND_FUNCTION(zstd_uncompress)
         ZSTD_freeDStream(stream);
     }
 
-    output = zend_string_truncate(output, result, 0);
-    ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+    output = zstd_string_output_truncate(output, result);
     RETVAL_NEW_STR(output);
 }
 
