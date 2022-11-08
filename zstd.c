@@ -130,11 +130,11 @@ ZEND_FUNCTION(zstd_compress)
     if (ZSTD_IS_ERROR(result)) {
         zend_string_efree(output);
         RETVAL_FALSE;
-    } else {
-        output = zend_string_truncate(output, result, 0);
-        ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
-        RETVAL_STR(output);
     }
+
+    output = zend_string_truncate(output, result, 0);
+    ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
+    RETVAL_NEW_STR(output);
 }
 
 ZEND_FUNCTION(zstd_uncompress)
@@ -208,7 +208,7 @@ ZEND_FUNCTION(zstd_uncompress)
             }
 
             result = ZSTD_decompressStream(stream, &out, &in);
-            if (ZSTD_isError(result)) {
+            if (ZSTD_IS_ERROR(result)) {
                 zend_string_efree(output);
                 ZSTD_freeDStream(stream);
                 ZSTD_WARNING("can not decompress stream");
@@ -227,7 +227,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
     output = zend_string_truncate(output, result, 0);
     ZSTR_VAL(output)[ZSTR_LEN(output)] = '\0';
-    RETVAL_STR(output);
+    RETVAL_NEW_STR(output);
 }
 
 ZEND_FUNCTION(zstd_compress_dict)
@@ -269,7 +269,7 @@ ZEND_FUNCTION(zstd_compress_dict)
                                                   input,
                                                   input_len,
                                                   cdict);
-    if (ZSTD_isError(cSize)) {
+    if (ZSTD_IS_ERROR(cSize)) {
         efree(cBuff);
         zend_error(E_WARNING, "zstd_compress_dict: %s",
                    ZSTD_getErrorName(cSize));
@@ -388,7 +388,7 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
             self->output.size = self->sizeout;
             self->output.pos  = 0;
             res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
-            if (ZSTD_isError(res)) {
+            if (ZSTD_IS_ERROR(res)) {
                 php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
                 ret = EOF;
             }
@@ -406,7 +406,7 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
         } else {
             res = ZSTD_flushStream(self->cctx, &self->output);
         }
-        if (ZSTD_isError(res)) {
+        if (ZSTD_IS_ERROR(res)) {
             php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
             ret = EOF;
         }
@@ -517,7 +517,7 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
             self->output.pos = 0;
             self->output.size = self->sizeout;
             res = ZSTD_decompressStream(self->dctx, &self->output , &self->input);
-            if (ZSTD_isError(res)) {
+            if (ZSTD_IS_ERROR(res)) {
                 php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
                 return -1;
@@ -598,7 +598,7 @@ static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t c
             self->output.size = self->sizeout;
             self->output.pos  = 0;
             res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
-            if (ZSTD_isError(res)) {
+            if (ZSTD_IS_ERROR(res)) {
                 php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
                 return -1;
