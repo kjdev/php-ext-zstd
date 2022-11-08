@@ -247,6 +247,7 @@ ZEND_FUNCTION(zstd_compress_dict)
 {
     long level = DEFAULT_COMPRESS_LEVEL;
 
+    zend_string *output;
     char *input, *dict;
     size_t input_len, dict_len;
 
@@ -261,46 +262,47 @@ ZEND_FUNCTION(zstd_compress_dict)
         RETURN_FALSE;
     }
 
-    size_t const cBuffSize = ZSTD_compressBound(input_len);
-    void* const cBuff = emalloc(cBuffSize);
-
     ZSTD_CCtx* const cctx = ZSTD_createCCtx();
     if (cctx == NULL) {
-        efree(cBuff);
-        zend_error(E_WARNING, "ZSTD_createCCtx() error");
+        ZSTD_WARNING("ZSTD_createCCtx() error");
         RETURN_FALSE;
     }
     ZSTD_CDict* const cdict = ZSTD_createCDict(dict,
                                                dict_len,
                                                level);
     if (!cdict) {
-        efree(cBuff);
-        zend_error(E_WARNING, "ZSTD_createCDict() error");
+        ZSTD_freeCStream(cctx);
+        ZSTD_WARNING("ZSTD_createCDict() error");
         RETURN_FALSE;
     }
-    size_t const cSize = ZSTD_compress_usingCDict(cctx, cBuff, cBuffSize,
+
+    size_t const cBuffSize = ZSTD_compressBound(input_len);
+    output = zend_string_alloc(cBuffSize, 0);
+
+    size_t const cSize = ZSTD_compress_usingCDict(cctx, ZSTR_VAL(output), cBuffSize,
                                                   input,
                                                   input_len,
                                                   cdict);
     if (ZSTD_IS_ERROR(cSize)) {
-        efree(cBuff);
-        zend_error(E_WARNING, "zstd_compress_dict: %s",
-                   ZSTD_getErrorName(cSize));
+        ZSTD_freeCStream(cctx);
+        ZSTD_freeCDict(cdict);
+        zend_string_efree(output);
+        ZSTD_WARNING("%s", ZSTD_getErrorName(cSize));
         RETURN_FALSE;
     }
+
+    output = zstd_string_output_truncate(output, cSize);
+    RETVAL_NEW_STR(output);
+
     ZSTD_freeCCtx(cctx);
     ZSTD_freeCDict(cdict);
-
-    RETVAL_STRINGL(cBuff, cSize);
-
-    efree(cBuff);
 }
 
 ZEND_FUNCTION(zstd_uncompress_dict)
 {
-
     char *input, *dict;
     size_t input_len, dict_len;
+    zend_string *output;
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(input, input_len)
@@ -310,41 +312,41 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     unsigned long long const rSize = ZSTD_getDecompressedSize(input,
                                                               input_len);
     if (rSize == 0) {
-        zend_error(E_WARNING, "zstd_uncompress_dict:"
-                   " it was not compressed by zstd");
+        ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
     }
-    void* const rBuff = emalloc((size_t)rSize);
 
     ZSTD_DCtx* const dctx = ZSTD_createDCtx();
     if (dctx == NULL) {
-        efree(rBuff);
-        zend_error(E_WARNING, "ZSTD_createDCtx() error");
+        ZSTD_WARNING("ZSTD_createDCtx() error");
         RETURN_FALSE;
     }
     ZSTD_DDict* const ddict = ZSTD_createDDict(dict,
                                                dict_len);
     if (!ddict) {
-        efree(rBuff);
-        zend_error(E_WARNING, "ZSTD_createDDict() error");
+        ZSTD_freeDStream(dctx);
+        ZSTD_WARNING("ZSTD_createDDict() error");
         RETURN_FALSE;
     }
-    size_t const dSize = ZSTD_decompress_usingDDict(dctx, rBuff, rSize,
+
+    output = zend_string_alloc(rSize, 0);
+
+    size_t const dSize = ZSTD_decompress_usingDDict(dctx, ZSTR_VAL(output), rSize,
                                                     input,
                                                     input_len,
                                                     ddict);
     if (dSize != rSize) {
-        efree(rBuff);
-        zend_error(E_WARNING, "zstd_uncompress_dict: %s",
-                   ZSTD_getErrorName(dSize));
+        ZSTD_freeDStream(dctx);
+        ZSTD_freeDDict(ddict);
+        zend_string_efree(output);
+        ZSTD_WARNING("%s", ZSTD_getErrorName(dSize));
         RETURN_FALSE;
     }
     ZSTD_freeDCtx(dctx);
     ZSTD_freeDDict(ddict);
 
-    RETVAL_STRINGL(rBuff, rSize);
-
-    efree(rBuff);
+    output = zstd_string_output_truncate(output, dSize);
+    RETVAL_NEW_STR(output);
 }
 
 
