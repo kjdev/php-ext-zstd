@@ -21,7 +21,7 @@ var_dump($output);
 bool(true)
 *** Uncompress ***
 
-Warning: zstd_uncompress: it was not compressed by zstd in %s
+Warning: zstd_uncompress(): it was not compressed by zstd in %s
 bool(false)
 bool(false)
 ===Done===

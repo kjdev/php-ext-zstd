@@ -39,7 +39,7 @@ Stack trace:
 #1 {main}
 *** Testing with incorrect arguments ***
 
-Warning: zstd_uncompress: it was not compressed by zstd in %s on line %d
+Warning: zstd_uncompress(): it was not compressed by zstd in %s on line %d
 bool(false)
 TypeError: zstd_uncompress(): Argument #1 ($data) must be of type string, Tester given in %s:%d
 Stack trace:
