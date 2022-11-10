@@ -17,8 +17,8 @@ else
     AC_MSG_RESULT([$PHP_VERSION])
 fi
 
-if test $PHP_MAJOR_VERSION -lt 5; then
-    AC_MSG_ERROR([need at least PHP 5 or newer])
+if test $PHP_MAJOR_VERSION -lt 7; then
+    AC_MSG_ERROR([need at least PHP 7 or newer])
 fi
 
 PHP_ARG_ENABLE(zstd, whether to enable zstd support,
