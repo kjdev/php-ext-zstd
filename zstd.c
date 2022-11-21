@@ -126,11 +126,25 @@ ZEND_FUNCTION(zstd_compress)
     char *input;
     size_t input_len;
 
+#if PHP_VERSION_ID < 80000
+    zval *data;
+    if (zend_parse_parameters(ZEND_NUM_ARGS(),
+                              "z|l", &data, &level) == FAILURE) {
+      RETURN_FALSE;
+    }
+    if (Z_TYPE_P(data) != IS_STRING) {
+      zend_error(E_WARNING, "zstd_compress(): expects parameter to be string.");
+      RETURN_FALSE;
+    }
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+#else
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
     ZEND_PARSE_PARAMETERS_END();
+#endif
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -161,9 +175,24 @@ ZEND_FUNCTION(zstd_uncompress)
     char *input;
     size_t input_len;
 
+#if PHP_VERSION_ID < 80000
+    zval *data;
+    if (zend_parse_parameters(ZEND_NUM_ARGS(),
+                              "z", &data) == FAILURE) {
+      RETURN_FALSE;
+    }
+    if (Z_TYPE_P(data) != IS_STRING) {
+      zend_error(E_WARNING,
+                 "zstd_uncompress(): expects parameter to be string.");
+      RETURN_FALSE;
+    }
+    input = Z_STRVAL_P(data);
+    input_len = Z_STRLEN_P(data);
+#else
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(input, input_len)
     ZEND_PARSE_PARAMETERS_END();
+#endif
 
     size = ZSTD_getFrameContentSize(input, input_len);
     if (size == ZSTD_CONTENTSIZE_ERROR) {
