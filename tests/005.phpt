@@ -26,9 +26,9 @@ Warning: zstd_uncompress() expects exactly 1 parameter, 0 given in %s on line %d
 bool(false)
 *** Testing with incorrect arguments ***
 
-Warning: zstd_uncompress: expects parameter to be string. in %s on line %d
+Warning: zstd_uncompress(): expects parameter to be string. in %s on line %d
 bool(false)
 
-Warning: zstd_uncompress: expects parameter to be string. in %s on line %d
+Warning: zstd_uncompress(): expects parameter to be string. in %s on line %d
 bool(false)
 ===DONE===
