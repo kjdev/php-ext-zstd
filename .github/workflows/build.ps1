@@ -25,5 +25,8 @@ Copy-Item "$dname\php_$env:PHP_EXT.dll" "php_$env:PHP_EXT.dll"
 
 $ini = New-Item "C:\php\bin\php.ini" -Force
 Add-Content $ini "extension_dir=C:\php\bin\ext"
+if (Test-Path 'C:\php\bin\ext\php_apcu.dll') {
+    Add-Content $ini 'extension=php_apcu.dll'
+}
 Add-Content $ini "extension=php_openssl.dll"
 Add-Content $ini "extension=php_$env:PHP_EXT.dll"

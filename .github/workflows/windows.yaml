@@ -25,11 +25,15 @@ jobs:
         library:
           - false
           - true
+        apcu:
+          - ''
+          - 'apcu'
 
     runs-on: windows-2019
 
     env:
       PHP_VER: ${{ matrix.php }}
+      PECL_APCU: ${{ matrix.apcu }}
       VC: vs16
       ARCH: ${{ matrix.arch }}
       TS: ${{ matrix.ts }}

@@ -78,3 +78,44 @@ if ("$env:DEP" -ne "") {
         Expand-Archive "C:\php\$bname" "C:\php\deps"
     }
 }
+
+# PECL apuc
+if (('' -ne $env:PECL_APCU) -and ('8.2' -ne $env:PHP_VER)) {
+    $apcu_version = '5.1.21'
+
+    $ts_part = 'ts'
+    if ('nts' -eq $env:TS) {
+        $ts_part = 'nts'
+    }
+
+    $bname = "php_apcu-$apcu_version-$env:PHP_VER-$ts_part-$env:VC-$env:ARCH.zip"
+
+    echo "Download: https://windows.php.net/downloads/pecl/releases/apcu/$apcu_version/$bname"
+    Invoke-WebRequest "https://windows.php.net/downloads/pecl/releases/apcu/$apcu_version/$bname" -OutFile "C:\php\$bname"
+    Expand-Archive "C:\php\$bname" 'C:\php\bin\ext'
+
+    $bname = "v$apcu_version.zip"
+
+    echo "Download: https://github.com/krakjoe/apcu/archive/refs/tags/$bname"
+    Invoke-WebRequest "https://github.com/krakjoe/apcu/archive/refs/tags/$bname" -OutFile "C:\php\$bname"
+    Expand-Archive "C:\php\$bname" 'C:\php'
+
+    if (-not (Test-Path 'C:\php\devel\include\ext\apcu')) {
+        [void](New-Item 'C:\php\devel\include\ext\apcu' -ItemType 'directory')
+    }
+
+    Move-Item "C:\php\apcu-$apcu_version\php_apc.h" 'C:\php\devel\include\ext\apcu\php_apc.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc.h" 'C:\php\devel\include\ext\apcu\apc.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_api.h" 'C:\php\devel\include\ext\apcu\apc_api.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_cache.h" 'C:\php\devel\include\ext\apcu\apc_cache.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_globals.h" 'C:\php\devel\include\ext\apcu\apc_globals.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_iterator.h" 'C:\php\devel\include\ext\apcu\apc_iterator.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_lock.h" 'C:\php\devel\include\ext\apcu\apc_lock.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_mutex.h" 'C:\php\devel\include\ext\apcu\apc_mutex.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_sma.h" 'C:\php\devel\include\ext\apcu\apc_sma.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_serializer.h" 'C:\php\devel\include\ext\apcu\apc_serializer.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_stack.h" 'C:\php\devel\include\ext\apcu\apc_stack.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_windows_srwlock_kernel.h" 'C:\php\devel\include\ext\apcu\apc_windows_srwlock_kernel.h'
+    Move-Item "C:\php\apcu-$apcu_version\apc_arginfo.h" 'C:\php\devel\include\ext\apcu\apc_arginfo.h'
+    Move-Item "C:\php\apcu-$apcu_version\php_apc_legacy_arginfo.h" 'C:\php\devel\include\ext\apcu\php_apc_legacy_arginfo.h'
+}
