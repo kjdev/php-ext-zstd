@@ -880,7 +880,7 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     php_unserialize_data_t var_hash;
     size_t var_len;
     uint64_t size;
-    void *var;
+    unsigned char* var;
 
     size = ZSTD_getFrameContentSize(buf, buf_len);
     if (size == ZSTD_CONTENTSIZE_ERROR
@@ -889,7 +889,7 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
         return 0;
     }
 
-    var = emalloc(size);
+    var = (unsigned char*) emalloc(size);
 
     var_len = ZSTD_decompress(var, size, buf, buf_len);
     if (ZSTD_isError(var_len) || var_len == 0) {
@@ -899,7 +899,7 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     }
 
     PHP_VAR_UNSERIALIZE_INIT(var_hash);
-    tmp = (unsigned char*) var;
+    tmp = var;
     result = php_var_unserialize(value, &tmp, var + var_len, &var_hash);
     PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
