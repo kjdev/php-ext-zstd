@@ -1,9 +1,17 @@
 ARG_ENABLE("zstd", "zstd support", "yes");
 
 if (PHP_ZSTD != "no") {
-  if (CHECK_HEADER_ADD_INCLUDE("ext/apcu/apc_serializer.h", "CFLAGS_ZSTD", PHP_DIR + "\\include")) {
-    AC_DEFINE("HAVE_APCU_SUPPORT", 1, "APCu support");
-  }
+  if (MODE_PHPIZE) {
+    // PHPIZE
+    if (CHECK_HEADER_ADD_INCLUDE("ext/apcu/apc_serializer.h", "CFLAGS_ZSTD", PHP_DIR + "\\include")) {
+      AC_DEFINE("HAVE_APCU_SUPPORT", 1, "APCu support");
+    }
+	} else {
+    // in-tree build
+    if (get_define("HAVE_APCU")) {
+      AC_DEFINE("HAVE_APCU_SUPPORT", 1, "APCu support");
+    }
+	}
 
   if (CHECK_LIB("libzstd.lib;zstd.lib", "zstd", PHP_ZSTD) &&
       CHECK_HEADER_ADD_INCLUDE("zstd.h", "CFLAGS_ZSTD", PHP_ZSTD)) {
