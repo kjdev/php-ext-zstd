@@ -338,9 +338,10 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         Z_PARAM_STRING(dict, dict_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    unsigned long long const rSize = ZSTD_getDecompressedSize(input,
+    unsigned long long const rSize = ZSTD_getFrameContentSize(input,
                                                               input_len);
-    if (rSize == 0) {
+
+    if (rSize == 0 || rSize == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
     }
