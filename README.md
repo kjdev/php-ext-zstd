@@ -34,7 +34,7 @@ Install from [pecl](https://pecl.php.net/package/zstd):
 
 ### Fedora
 
-Fedora users can install the [» php-zstd](https://apps.fedoraproject.org/packages/php-zstd) package from official repository.
+Fedora users can install the [» php-zstd](https://packages.fedoraproject.org/pkgs/php-zstd/php-zstd/) package from official repository.
 
 ``` bash
 dnf install php-zstd
@@ -42,7 +42,7 @@ dnf install php-zstd
 
 ### CentOS / RHEL
 
-CentOS / RHEL (and other clones) users can install the [» php-zstd](https://apps.fedoraproject.org/packages/php-zstd) package from [» EPEL](https://fedoraproject.org/wiki/EPEL) repository.
+CentOS / RHEL (and other clones) users can install the [» php-zstd](https://packages.fedoraproject.org/pkgs/php-zstd/php-zstd/) package from [» EPEL](https://fedoraproject.org/wiki/EPEL) repository.
 
 ``` bash
 yum install php-zstd
