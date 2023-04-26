@@ -84,7 +84,7 @@ string **zstd\_compress** ( string _$data_ [, int _$level_ = 3 ] )
 
 Zstandard compression.
 
-#### Pameters
+#### Parameters
 
 * _data_
 
@@ -113,7 +113,7 @@ Zstandard decompression.
 
 > Alias: zstd\_decompress
 
-#### Pameters
+#### Parameters
 
 * _data_
 
@@ -134,7 +134,7 @@ Zstandard compression using a digested dictionary.
 
 > Alias: zstd\_compress\_usingcdict
 
-#### Pameters
+#### Parameters
 
 * _data_
 
@@ -165,7 +165,7 @@ Zstandard decompression using a digested dictionary.
 > Alias: zstd\_decompress\_dict,
 > zstd\_uncompress\_usingcdict, zstd\_decompress\_usingcdict
 
-#### Pameters
+#### Parameters
 
 * _data_
 
@@ -196,7 +196,7 @@ function uncompress_dict ( $data, $dict )
 
 ## Streams
 
-Zstd compression and uncompression are available using the
+Zstd compression and decompression are available using the
 `compress.zstd://` stream prefix.
 
 ## Examples
@@ -211,6 +211,17 @@ $data = \Zstd\compress('test');
 \Zstd\uncompress($data);
 
 // Using streams
-file_put_contents("compress.zstd:///patch/to/data.zstd", $data);
-readfile("compress.zstd:///patch/to/data.zstd");
+file_put_contents("compress.zstd:///path/to/data.zstd", $data);
+readfile("compress.zstd:///path/to/data.zstd");
+
+// Providing level of compression, when using streams 
+$context = stream_context_create([
+    'zstd' => [
+            'level' => ZSTD_COMPRESS_LEVEL_MIN,
+        ],
+    ],
+);
+
+file_put_contents("compress.zstd:///path/to/data.zstd", $data, context: $context);
+readfile("compress.zstd:///path/to/data.zstd", context: $context);
 ```
