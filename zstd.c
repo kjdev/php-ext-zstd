@@ -855,7 +855,7 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
     }
 
     size = ZSTD_compressBound(ZSTR_LEN(var.s));
-    *buf = (char*) emalloc(size + 1);
+    *buf = emalloc(size + 1);
 
     *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
                              DEFAULT_COMPRESS_LEVEL);
