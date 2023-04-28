@@ -592,7 +592,6 @@ static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t co
 #else
 static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
 {
-    ssize_t ret = 0;
 #endif
 
     STREAM_DATA_FROM_STREAM();
