@@ -592,7 +592,6 @@ static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t co
 #else
 static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
 {
-    ssize_t ret = 0;
 #endif
 
     STREAM_DATA_FROM_STREAM();
@@ -856,7 +855,7 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
     }
 
     size = ZSTD_compressBound(ZSTR_LEN(var.s));
-    *buf = (char*) emalloc(size + 1);
+    *buf = emalloc(size + 1);
 
     *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
                              DEFAULT_COMPRESS_LEVEL);
@@ -956,7 +955,7 @@ ZEND_MINFO_FUNCTION(zstd)
 {
     php_info_print_table_start();
     php_info_print_table_row(2, "Zstd support", "enabled");
-    php_info_print_table_row(2, "Extension Version", PHP_ZSTD_EXT_VERSION);
+    php_info_print_table_row(2, "Extension Version", PHP_ZSTD_VERSION);
     php_info_print_table_row(2, "Interface Version", ZSTD_VERSION_STRING);
 #if defined(HAVE_APCU_SUPPORT)
     php_info_print_table_row(2, "APCu serializer ABI", APC_SERIALIZER_ABI);
@@ -1024,7 +1023,7 @@ zend_module_entry zstd_module_entry = {
     NULL,
     NULL,
     ZEND_MINFO(zstd),
-    PHP_ZSTD_EXT_VERSION,
+    PHP_ZSTD_VERSION,
     STANDARD_MODULE_PROPERTIES
 };
 
