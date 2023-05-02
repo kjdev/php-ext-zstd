@@ -12,6 +12,7 @@ Documentation for Zstandard can be found at [» https://github.com/facebook/zstd
 
 ``` bash
 % git clone --recursive --depth=1 https://github.com/kjdev/php-ext-zstd.git
+% cd php-ext-zstd
 % phpize
 % ./configure
 % make
