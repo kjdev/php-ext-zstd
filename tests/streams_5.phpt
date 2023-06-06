@@ -8,7 +8,7 @@ if (LIBZSTD_VERSION_NUMBER < 10400) die("skip needs libzstd 1.4.0");
 <?php
 include(dirname(__FILE__) . '/data.inc');
 
-$file = dirname(__FILE__) . '/data.out';
+$file = dirname(__FILE__) . '/data_' . basename(__FILE__, ".php") . '.out';
 $dictionary = file_get_contents(dirname(__FILE__) . '/data.dic');
 
 echo "Compression\n";

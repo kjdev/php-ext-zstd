@@ -6,8 +6,8 @@ compress.zstd streams and big file
 <?php
 include(dirname(__FILE__) . '/data.inc');
 
-$file1 = dirname(__FILE__) . '/data1.out';
-$file2 = dirname(__FILE__) . '/data2.out';
+$file1 = dirname(__FILE__) . '/data1_' . basename(__FILE__, ".php") . '.out';
+$file2 = dirname(__FILE__) . '/data2_' . basename(__FILE__, ".php") . '.out';
 
 echo "Compress\n";
 var_dump(copy(PHP_BINARY, 'compress.zstd://' . $file1));
