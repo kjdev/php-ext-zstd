@@ -714,7 +714,7 @@ php_stream_zstd_opener(
         return NULL;
     }
 
-    if (!strcmp(mode, "w") || !strcmp(mode, "wb")) {
+    if (!strcmp(mode, "w") || !strcmp(mode, "wb") || !strcmp(mode, "a") || !strcmp(mode, "ab")) {
        compress = 1;
     } else if (!strcmp(mode, "r") || !strcmp(mode, "rb")) {
        compress = 0;
