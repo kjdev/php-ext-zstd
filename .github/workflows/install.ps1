@@ -80,7 +80,7 @@ if ("$env:DEP" -ne "") {
 }
 
 # PECL apuc
-if (('' -ne $env:PECL_APCU) -and ('8.2' -ne $env:PHP_VER)) {
+if (('' -ne $env:PECL_APCU) -and ('8.2' -ne $env:PHP_VER) -and ('8.3' -ne $env:PHP_VER)) {
     $apcu_version = '5.1.21'
 
     $ts_part = 'ts'
