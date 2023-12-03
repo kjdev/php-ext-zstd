@@ -13,8 +13,6 @@ jobs:
           - '8.2-zts'
           - '8.1'
           - '8.1-zts'
-          - '8.0'
-          - '8.0-zts'
         library:
           - ''
           - 'system'
@@ -23,6 +21,8 @@ jobs:
           - 'apcu'
         image: [php]
         include:
+          - php: '8.0'
+            image: ghcr.io/kjdev/php
           - php: '7.4'
             image: ghcr.io/kjdev/php
           - php: '7.3'
