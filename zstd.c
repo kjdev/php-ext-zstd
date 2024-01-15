@@ -588,7 +588,6 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
 #if PHP_VERSION_ID < 70400
 static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
 {
-    size_t ret = 0;
 #else
 static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
 {
@@ -616,6 +615,7 @@ static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t c
     return count;
 
 #else
+    size_t ret = 0;
     size_t x, res;
 
     while(count > 0) {
