@@ -82,13 +82,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
 
-static size_t zstd_check_compress_level(long level)
+static size_t zstd_check_compress_level(zend_long level)
 {
     uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
 
 #if ZSTD_VERSION_NUMBER >= 10304
     if (level > maxLevel) {
-        ZSTD_WARNING("compression level (%ld)"
+        ZSTD_WARNING("compression level (" ZEND_LONG_FMT ")"
             " must be within 1..%d or smaller then 0", level, maxLevel);
       return 0;
     }
@@ -121,7 +121,7 @@ ZEND_FUNCTION(zstd_compress)
 {
     zend_string *output;
     size_t size, result;
-    long level = DEFAULT_COMPRESS_LEVEL;
+    zend_long level = DEFAULT_COMPRESS_LEVEL;
 
     char *input;
     size_t input_len;
@@ -154,7 +154,7 @@ ZEND_FUNCTION(zstd_compress)
     output = zend_string_alloc(size, 0);
 
     result = ZSTD_compress(ZSTR_VAL(output), size, input, input_len,
-                           level);
+                           (int)level);
 
     if (ZSTD_IS_ERROR(result)) {
         zend_string_efree(output);
@@ -274,7 +274,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
 ZEND_FUNCTION(zstd_compress_dict)
 {
-    long level = DEFAULT_COMPRESS_LEVEL;
+    zend_long level = DEFAULT_COMPRESS_LEVEL;
 
     zend_string *output;
     char *input, *dict;
@@ -298,7 +298,7 @@ ZEND_FUNCTION(zstd_compress_dict)
     }
     ZSTD_CDict* const cdict = ZSTD_createCDict(dict,
                                                dict_len,
-                                               level);
+                                               (int)level);
     if (!cdict) {
         ZSTD_freeCStream(cctx);
         ZSTD_WARNING("ZSTD_createCDict() error");
@@ -906,8 +906,8 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     if (!result) {
         php_error_docref(NULL, E_NOTICE,
                          "Error at offset %ld of %ld bytes",
-                         (zend_long) (tmp - (unsigned char*) var),
-                         (zend_long) var_len);
+                         (long) (tmp - (unsigned char*) var),
+                         (long) var_len);
         ZVAL_NULL(value);
         result = 0;
     } else {
