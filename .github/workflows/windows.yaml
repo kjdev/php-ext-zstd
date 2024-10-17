@@ -66,8 +66,9 @@ jobs:
           NO_INTERACTION: 1
 
       - name: Store artifact DLL
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: php_${{ env.PHP_EXT }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vc }}-${{ matrix.arch }}
           path: .\php_${{ env.PHP_EXT }}.dll
+          overwrite: true
         if: ${{ ! matrix.library }}
