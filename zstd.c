@@ -26,7 +26,9 @@
 #endif
 
 #include <php.h>
+#include <SAPI.h>
 #include <php_ini.h>
+#include <ext/standard/file.h>
 #include <ext/standard/info.h>
 #include <ext/standard/php_smart_string.h>
 #if defined(HAVE_APCU_SUPPORT)
@@ -81,6 +83,22 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, dictBuffer)
 ZEND_END_ARG_INFO()
+
+#if PHP_VERSION_ID >= 80000
+#if PHP_VERSION_ID >= 80100
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_ob_zstd_handler, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+#else
+ZEND_BEGIN_ARG_INFO_EX(arginfo_ob_zstd_handler, 0, 0, 2)
+    ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, flags)
+ZEND_END_ARG_INFO()
+#endif
+
+ZEND_DECLARE_MODULE_GLOBALS(zstd);
+#endif
 
 static size_t zstd_check_compress_level(zend_long level)
 {
@@ -813,6 +831,454 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
 }
 #endif
 
+/* output handler */
+#if PHP_VERSION_ID >= 80000
+#define PHP_ZSTD_OUTPUT_HANDLER_NAME "zstd output compression"
+
+struct _php_zstd_context {
+    ZSTD_CCtx* cctx;
+    ZSTD_CDict *cdict;
+    ZSTD_inBuffer input;
+    ZSTD_outBuffer output;
+};
+
+static int php_zstd_output_encoding(void)
+{
+    zval *enc;
+
+    if (!PHP_ZSTD_G(compression_coding)) {
+        if ((Z_TYPE(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY
+#if PHP_VERSION_ID >= 80100
+             || zend_is_auto_global(ZSTR_KNOWN(ZEND_STR_AUTOGLOBAL_SERVER)))
+#else
+             || zend_is_auto_global_str(ZEND_STRL("_SERVER")))
+#endif
+            && (enc = zend_hash_str_find(
+                    Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER]),
+                    "HTTP_ACCEPT_ENCODING",
+                    sizeof("HTTP_ACCEPT_ENCODING") - 1))) {
+            convert_to_string(enc);
+            if (strstr(Z_STRVAL_P(enc), "zstd")) {
+                PHP_ZSTD_G(compression_coding) = 1;
+            }
+        }
+    }
+    return PHP_ZSTD_G(compression_coding);
+}
+
+static php_zstd_context* php_zstd_output_handler_context_init(void)
+{
+    php_zstd_context *ctx
+        = (php_zstd_context *) ecalloc(1, sizeof(php_zstd_context));
+    return ctx;
+}
+
+static void
+php_zstd_output_handler_load_dict(php_zstd_context *ctx, int level)
+{
+    php_stream *stream = NULL;
+    zval *zcontext = NULL;
+    php_stream_context *context = NULL;
+    zend_string *contents = NULL;
+    zend_long maxlen = (ssize_t) PHP_STREAM_COPY_ALL;
+    char *dict = PHP_ZSTD_G(output_compression_dict);
+
+    if (!dict || strlen(dict) <= 0) {
+        return;
+    }
+
+    context = php_stream_context_from_zval(zcontext, 0);
+    stream = php_stream_open_wrapper_ex(dict, "rb",
+                                        REPORT_ERRORS, // | USE_PATH
+                                        NULL, context);
+    if (!stream) {
+        ZSTD_WARNING("could not open dictionary stream: %s", dict);
+        return;
+    }
+
+    if (php_stream_is(stream, PHP_STREAM_IS_STDIO)) {
+        php_stream_set_option(stream, PHP_STREAM_OPTION_READ_BUFFER,
+                              PHP_STREAM_BUFFER_NONE, NULL);
+    }
+
+    contents = php_stream_copy_to_mem(stream, maxlen, 0);
+
+    if (contents) {
+        ctx->cdict = ZSTD_createCDict(ZSTR_VAL(contents), ZSTR_LEN(contents),
+                                      level);
+        if (!ctx->cdict) {
+            ZSTD_WARNING("failed to create compression dictionary: %s", dict);
+        }
+
+        zend_string(contents);
+    } else {
+        ZSTD_WARNING("failed to get dictionary stream: %s", dict);
+    }
+
+    php_stream_close(stream);
+}
+
+static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
+{
+    int level = PHP_ZSTD_G(output_compression_level);
+
+    if (!zstd_check_compress_level(level) || level < 0) {
+        level = ZSTD_CLEVEL_DEFAULT;
+    }
+
+    ctx->cctx = ZSTD_createCCtx();
+    if (!ctx->cctx) {
+        return FAILURE;
+    }
+
+    php_zstd_output_handler_load_dict(ctx, level);
+
+    ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
+    ZSTD_CCtx_refCDict(ctx->cctx, ctx->cdict);
+    ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, level);
+
+    ctx->output.size = ZSTD_CStreamOutSize();
+    ctx->output.dst = emalloc(ctx->output.size);
+    ctx->output.pos = 0;
+
+    return SUCCESS;
+}
+
+static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
+{
+    if (ctx->cctx) {
+        ZSTD_freeCCtx(ctx->cctx);
+        ctx->cctx = NULL;
+    }
+    if (ctx->cdict) {
+        ZSTD_freeCDict(ctx->cdict);
+        ctx->cdict = NULL;
+    }
+    if (ctx->output.dst) {
+        efree(ctx->output.dst);
+        ctx->output.dst = NULL;
+    }
+}
+
+static void php_zstd_output_handler_context_dtor(void *opaq)
+{
+    php_zstd_context *ctx = (php_zstd_context *) opaq;
+
+    if (ctx) {
+        php_zstd_output_handler_context_free(ctx);
+        efree(ctx);
+    }
+}
+
+static void
+php_zstd_output_handler_write(php_zstd_context *ctx,
+                              php_output_context *output_context, int flags)
+{
+    size_t res;
+
+    output_context->out.size = ZSTD_compressBound(output_context->in.used);
+    if (output_context->out.size < ctx->output.size) {
+        output_context->out.size = ctx->output.size;
+    }
+    output_context->out.data = emalloc(output_context->out.size);
+    output_context->out.free = 1;
+    output_context->out.used = 0;
+
+    do {
+        ctx->output.pos = 0;
+        res = ZSTD_compressStream2(ctx->cctx, &ctx->output, &ctx->input, flags);
+        if (ZSTD_isError(res)) {
+            ZSTD_WARNING("zstd output handler compress error %s\n",
+                         ZSTD_getErrorName(res));
+        }
+        memcpy(output_context->out.data + output_context->out.used,
+               ctx->output.dst, ctx->output.pos);
+        output_context->out.used += ctx->output.pos;
+    } while (res > 0);
+}
+
+static zend_result
+php_zstd_output_handler_ex(php_zstd_context *ctx,
+                           php_output_context *output_context)
+{
+    if (output_context->op & PHP_OUTPUT_HANDLER_START) {
+        /* start up */
+        if (php_zstd_output_handler_context_start(ctx) != SUCCESS) {
+            return FAILURE;
+        }
+    }
+
+    if (output_context->op & PHP_OUTPUT_HANDLER_CLEAN) {
+        /* clean */
+        if (output_context->in.used) {
+            ctx->input.src = output_context->in.data;
+            ctx->input.size = output_context->in.used;
+        } else {
+            ctx->input.src = NULL;
+            ctx->input.size = 0;
+        }
+        ctx->input.pos = 0;
+
+        php_zstd_output_handler_write(ctx, output_context, ZSTD_e_end);
+
+        if (output_context->op & PHP_OUTPUT_HANDLER_FINAL) {
+            /* discard */
+            php_zstd_output_handler_context_free(ctx);
+            return SUCCESS;
+        } else {
+            /* restart */
+            ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
+        }
+    } else {
+        int flags = ZSTD_e_continue;
+
+        if (output_context->op & PHP_OUTPUT_HANDLER_FINAL) {
+            flags = ZSTD_e_end;
+        } else if (output_context->op & PHP_OUTPUT_HANDLER_FLUSH) {
+            flags = ZSTD_e_flush;
+        }
+
+        ctx->input.src = output_context->in.data;
+        ctx->input.size = output_context->in.used;
+        ctx->input.pos = 0;
+
+        php_zstd_output_handler_write(ctx, output_context, flags);
+
+        if (output_context->op & PHP_OUTPUT_HANDLER_FINAL) {
+            php_zstd_output_handler_context_free(ctx);
+        }
+    }
+
+    return SUCCESS;
+}
+
+static zend_result
+php_zstd_output_handler(void **handler_context,
+                        php_output_context *output_context)
+{
+    php_zstd_context *ctx = *(php_zstd_context **) handler_context;
+
+    if (!php_zstd_output_encoding()) {
+        if ((output_context->op & PHP_OUTPUT_HANDLER_START)
+            &&  (output_context->op != (PHP_OUTPUT_HANDLER_START
+                                        |PHP_OUTPUT_HANDLER_CLEAN
+                                        |PHP_OUTPUT_HANDLER_FINAL))) {
+            sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+        }
+        return FAILURE;
+    }
+
+    if (php_zstd_output_handler_ex(ctx, output_context) != SUCCESS) {
+        return FAILURE;
+    }
+
+    if (!(output_context->op & PHP_OUTPUT_HANDLER_CLEAN)
+        || ((output_context->op & PHP_OUTPUT_HANDLER_START)
+            && !(output_context->op & PHP_OUTPUT_HANDLER_FINAL))) {
+        int flags;
+        if (php_output_handler_hook(PHP_OUTPUT_HANDLER_HOOK_GET_FLAGS,
+                                    &flags) == SUCCESS) {
+            if (!(flags & PHP_OUTPUT_HANDLER_STARTED)) {
+                if (SG(headers_sent) || !PHP_ZSTD_G(output_compression)) {
+                    return FAILURE;
+                }
+                sapi_add_header_ex(ZEND_STRL("Content-Encoding: zstd"), 1, 1);
+                sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+                php_output_handler_hook(PHP_OUTPUT_HANDLER_HOOK_IMMUTABLE,
+                                        NULL);
+            }
+        }
+    }
+
+    return SUCCESS;
+}
+
+static php_output_handler*
+php_zstd_output_handler_init(const char *handler_name, size_t handler_name_len,
+                             size_t chunk_size, int flags)
+{
+    php_output_handler *h = NULL;
+
+    if (!PHP_ZSTD_G(output_compression)) {
+        PHP_ZSTD_G(output_compression) = 1;
+    }
+
+    PHP_ZSTD_G(handler_registered) = 1;
+
+    if ((h = php_output_handler_create_internal(handler_name, handler_name_len,
+                                                php_zstd_output_handler,
+                                                chunk_size, flags))) {
+        php_output_handler_set_context(h,
+                                       php_zstd_output_handler_context_init(),
+                                       php_zstd_output_handler_context_dtor);
+    }
+
+    return h;
+}
+
+static void php_zstd_cleanup_ob_handler_mess(void)
+{
+    if (PHP_ZSTD_G(ob_handler)) {
+        php_zstd_output_handler_context_dtor(PHP_ZSTD_G(ob_handler));
+        PHP_ZSTD_G(ob_handler) = NULL;
+    }
+}
+
+ZEND_FUNCTION(ob_zstd_handler)
+{
+    char *in_str;
+    size_t in_len;
+    zend_long flags = 0;
+    php_output_context ctx = {0};
+    int encoding;
+    zend_result rv;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS(),
+                              "sl", &in_str, &in_len, &flags) != SUCCESS) {
+        RETURN_THROWS();
+    }
+
+    if (!(encoding = php_zstd_output_encoding())) {
+        RETURN_FALSE;
+    }
+
+    if (flags & PHP_OUTPUT_HANDLER_START) {
+        sapi_add_header_ex(ZEND_STRL("Content-Encoding: zstd"), 1, 1);
+        sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+    }
+
+    if (!PHP_ZSTD_G(ob_handler)) {
+        PHP_ZSTD_G(ob_handler) = php_zstd_output_handler_context_init();
+    }
+
+    ctx.op = flags;
+    ctx.in.data = in_str;
+    ctx.in.used = in_len;
+
+    rv = php_zstd_output_handler_ex(PHP_ZSTD_G(ob_handler), &ctx);
+
+    if (rv != SUCCESS) {
+        if (ctx.out.data && ctx.out.free) {
+            efree(ctx.out.data);
+        }
+        php_zstd_cleanup_ob_handler_mess();
+        RETURN_FALSE;
+    }
+
+    if (ctx.out.data) {
+        RETVAL_STRINGL(ctx.out.data, ctx.out.used);
+        if (ctx.out.free) {
+            efree(ctx.out.data);
+        }
+    } else {
+        RETVAL_EMPTY_STRING();
+    }
+}
+
+static zend_result
+php_zstd_output_conflict_check(const char *handler_name,
+                               size_t handler_name_len)
+{
+    if (php_output_get_level() > 0) {
+        if (php_output_handler_conflict(handler_name, handler_name_len,
+                                        ZEND_STRL(PHP_ZSTD_OUTPUT_HANDLER_NAME))
+            ||  php_output_handler_conflict(handler_name, handler_name_len,
+                                            ZEND_STRL("ob_zstd_handler"))
+            ||  php_output_handler_conflict(handler_name, handler_name_len,
+                                            ZEND_STRL("ob_gzhandler"))
+            ||  php_output_handler_conflict(handler_name, handler_name_len,
+                                            ZEND_STRL("mb_output_handler"))
+            ||  php_output_handler_conflict(handler_name, handler_name_len,
+                                            ZEND_STRL("URL-Rewriter"))) {
+            return FAILURE;
+        }
+    }
+    return SUCCESS;
+}
+
+static void php_zstd_output_compression_start(void)
+{
+    php_output_handler *h;
+
+    switch (PHP_ZSTD_G(output_compression)) {
+        case 0:
+            break;
+        case 1:
+            /* break omitted intentionally */
+        default:
+            if (php_zstd_output_encoding() &&
+                (h = php_zstd_output_handler_init(
+                    ZEND_STRL(PHP_ZSTD_OUTPUT_HANDLER_NAME),
+                    PHP_OUTPUT_HANDLER_DEFAULT_SIZE,
+                    PHP_OUTPUT_HANDLER_STDFLAGS))) {
+                php_output_handler_start(h);
+            }
+            break;
+    }
+}
+
+static PHP_INI_MH(OnUpdate_zstd_output_compression)
+{
+    int int_value;
+    zend_long *p;
+
+    if (new_value == NULL) {
+        return FAILURE;
+    }
+
+    if (zend_string_equals_literal_ci(new_value, "off")) {
+        int_value = 0;
+    } else if (zend_string_equals_literal_ci(new_value, "on")) {
+        int_value = 1;
+#if PHP_VERSION_ID >= 80200
+    } else if (zend_ini_parse_quantity_warn(new_value, entry->name)) {
+#else
+    } else if (zend_atoi(ZSTR_VAL(new_value), ZSTR_LEN(new_value))) {
+#endif
+        int_value = 1;
+    } else {
+        int_value = 0;
+    }
+
+    if (stage == PHP_INI_STAGE_RUNTIME) {
+        int status = php_output_get_status();
+        if (status & PHP_OUTPUT_SENT) {
+            php_error_docref("ref.outcontrol", E_WARNING,
+                             "Cannot change zstd.output_compression"
+                             " - headers already sent");
+            return FAILURE;
+        }
+    }
+
+    p = (zend_long *) ZEND_INI_GET_ADDR();
+    *p = int_value;
+
+    PHP_ZSTD_G(output_compression) = PHP_ZSTD_G(output_compression_default);
+
+    if (stage == PHP_INI_STAGE_RUNTIME && int_value) {
+        if (!php_output_handler_started(
+                ZEND_STRL(PHP_ZSTD_OUTPUT_HANDLER_NAME))) {
+            php_zstd_output_compression_start();
+        }
+    }
+
+    return SUCCESS;
+}
+
+PHP_INI_BEGIN()
+  STD_PHP_INI_BOOLEAN("zstd.output_compression", "0",
+                      PHP_INI_ALL, OnUpdate_zstd_output_compression,
+                      output_compression_default,
+                      zend_zstd_globals, zstd_globals)
+  STD_PHP_INI_ENTRY("zstd.output_compression_level", "-1",
+                    PHP_INI_ALL, OnUpdateLong, output_compression_level,
+                    zend_zstd_globals, zstd_globals)
+  STD_PHP_INI_ENTRY("zstd.output_compression_dict", "",
+                    PHP_INI_ALL, OnUpdateString, output_compression_dict,
+                    zend_zstd_globals, zstd_globals)
+PHP_INI_END()
+#endif
+
 ZEND_MINIT_FUNCTION(zstd)
 {
     REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_MIN",
@@ -841,6 +1307,50 @@ ZEND_MINIT_FUNCTION(zstd)
                             NULL);
 #endif
 
+#if PHP_VERSION_ID >= 80000
+    php_output_handler_alias_register(ZEND_STRL("ob_zstd_handler"),
+                                      php_zstd_output_handler_init);
+    php_output_handler_conflict_register(ZEND_STRL("ob_zstd_handler"),
+                                         php_zstd_output_conflict_check);
+    php_output_handler_conflict_register(
+        ZEND_STRL(PHP_ZSTD_OUTPUT_HANDLER_NAME),
+        php_zstd_output_conflict_check);
+
+    REGISTER_INI_ENTRIES();
+#endif
+
+    return SUCCESS;
+}
+
+ZEND_MSHUTDOWN_FUNCTION(zstd)
+{
+#if PHP_VERSION_ID >= 80000
+    UNREGISTER_INI_ENTRIES();
+#endif
+    return SUCCESS;
+}
+
+ZEND_RINIT_FUNCTION(zstd)
+{
+#if PHP_VERSION_ID >= 80000
+    PHP_ZSTD_G(compression_coding) = 0;
+
+    if (!PHP_ZSTD_G(handler_registered)) {
+        PHP_ZSTD_G(output_compression) = PHP_ZSTD_G(output_compression_default);
+
+        php_zstd_output_compression_start();
+    }
+#endif
+    return SUCCESS;
+}
+
+ZEND_RSHUTDOWN_FUNCTION(zstd)
+{
+#if PHP_VERSION_ID >= 80000
+    php_zstd_cleanup_ob_handler_mess();
+
+    PHP_ZSTD_G(handler_registered) = 0;
+#endif
     return SUCCESS;
 }
 
@@ -854,7 +1364,22 @@ ZEND_MINFO_FUNCTION(zstd)
     php_info_print_table_row(2, "APCu serializer ABI", APC_SERIALIZER_ABI);
 #endif
     php_info_print_table_end();
+
+#if PHP_VERSION_ID >= 80000
+    DISPLAY_INI_ENTRIES();
+#endif
 }
+
+#if PHP_VERSION_ID >= 80000
+ZEND_GINIT_FUNCTION(zstd)
+{
+#if defined(COMPILE_DL_ZSTD) && defined(ZTS)
+    ZEND_TSRMLS_CACHE_UPDATE();
+#endif
+    zstd_globals->ob_handler = NULL;
+    zstd_globals->handler_registered = 0;
+}
+#endif
 
 static zend_function_entry zstd_functions[] = {
     ZEND_FE(zstd_compress, arginfo_zstd_compress)
@@ -891,6 +1416,10 @@ static zend_function_entry zstd_functions[] = {
     ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
 
+#if PHP_VERSION_ID >= 80000
+    ZEND_FE(ob_zstd_handler, arginfo_ob_zstd_handler)
+#endif
+
     {NULL, NULL, NULL}
 };
 
@@ -912,14 +1441,25 @@ zend_module_entry zstd_module_entry = {
     "zstd",
     zstd_functions,
     ZEND_MINIT(zstd),
-    NULL,
-    NULL,
-    NULL,
+    ZEND_MSHUTDOWN(zstd),
+    ZEND_RINIT(zstd),
+    ZEND_RSHUTDOWN(zstd),
     ZEND_MINFO(zstd),
     PHP_ZSTD_VERSION,
+#if PHP_VERSION_ID >= 80000
+    PHP_MODULE_GLOBALS(zstd),
+    PHP_GINIT(zstd),
+    NULL,
+    NULL,
+    STANDARD_MODULE_PROPERTIES_EX
+#else
     STANDARD_MODULE_PROPERTIES
+#endif
 };
 
 #ifdef COMPILE_DL_ZSTD
+#ifdef ZTS
+ZEND_TSRMLS_CACHE_DEFINE()
+#endif
 ZEND_GET_MODULE(zstd)
 #endif
