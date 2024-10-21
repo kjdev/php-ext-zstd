@@ -103,13 +103,16 @@ static size_t zstd_check_compress_level(zend_long level)
 }
 
 // Truncate string to given size
-static zend_always_inline zend_string* zstd_string_output_truncate(zend_string* output, size_t real_length)
+static zend_always_inline zend_string*
+zstd_string_output_truncate(zend_string* output, size_t real_length)
 {
     size_t capacity = ZSTR_LEN(output);
     size_t free_space = capacity - real_length;
 
-    // Reallocate just when capacity and real size differs a lot or the free space is bigger than 1 MB
-    if (UNEXPECTED(free_space > (capacity / 8) || free_space > (1024 * 1024))) {
+    // Reallocate just when capacity and real size differs a lot
+    // or the free space is bigger than 1 MB
+    if (UNEXPECTED(free_space > (capacity / 8)
+                   || free_space > (1024 * 1024))) {
         output = zend_string_truncate(output, real_length, 0);
     }
     ZSTR_LEN(output) = real_length;
@@ -434,7 +437,8 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
             self->output.pos  = 0;
             res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
             if (ZSTD_IS_ERROR(res)) {
-                php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+                php_error_docref(NULL, E_WARNING,
+                                 "libzstd error %s\n", ZSTD_getErrorName(res));
                 ret = EOF;
             }
             php_stream_write(self->stream, self->bufout, self->output.pos);
@@ -452,7 +456,8 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
             res = ZSTD_flushStream(self->cctx, &self->output);
         }
         if (ZSTD_IS_ERROR(res)) {
-            php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            php_error_docref(NULL, E_WARNING,
+                             "libzstd error %s\n", ZSTD_getErrorName(res));
             ret = EOF;
         }
         php_stream_write(self->stream, self->bufout, self->output.pos);
@@ -475,9 +480,11 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
     /* Flush / End */
     do {
         self->output.pos  = 0;
-        res = ZSTD_compressStream2(self->cctx, &self->output, &in, end ? ZSTD_e_end : ZSTD_e_flush);
+        res = ZSTD_compressStream2(self->cctx, &self->output, &in,
+                                   end ? ZSTD_e_end : ZSTD_e_flush);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            php_error_docref(NULL, E_WARNING,
+                             "libzstd error %s\n", ZSTD_getErrorName(res));
             ret = EOF;
         }
         php_stream_write(self->stream, self->output.dst, self->output.pos);
@@ -561,9 +568,11 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
             /* for zstd */
             self->output.pos = 0;
             self->output.size = self->sizeout;
-            res = ZSTD_decompressStream(self->dctx, &self->output , &self->input);
+            res = ZSTD_decompressStream(self->dctx,
+                                        &self->output, &self->input);
             if (ZSTD_IS_ERROR(res)) {
-                php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+                php_error_docref(NULL, E_WARNING,
+                                 "libzstd error %s\n", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
                 return -1;
 #endif
@@ -574,7 +583,8 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
         }  else {
             /* read */
             self->input.pos = 0;
-            self->input.size = php_stream_read(self->stream, self->bufin, self->sizein);
+            self->input.size = php_stream_read(self->stream,
+                                               self->bufin, self->sizein);
             if (!self->input.size) {
                 /* EOF */
                 count = 0;
@@ -586,13 +596,12 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
 
 
 #if PHP_VERSION_ID < 70400
-static size_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
-{
+static size_t
 #else
-static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
-{
+static ssize_t
 #endif
-
+php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
+{
     STREAM_DATA_FROM_STREAM();
 
 #if ZSTD_VERSION_NUMBER >= 10400
@@ -601,9 +610,11 @@ static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t c
 
     do {
         self->output.pos = 0;
-        res = ZSTD_compressStream2(self->cctx, &self->output, &in, ZSTD_e_continue);
+        res = ZSTD_compressStream2(self->cctx, &self->output,
+                                   &in, ZSTD_e_continue);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+            php_error_docref(NULL, E_WARNING,
+                             "libzstd error %s\n", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
             return -1;
 #endif
@@ -643,7 +654,8 @@ static ssize_t php_zstd_comp_write(php_stream *stream, const char *buf, size_t c
             self->output.pos  = 0;
             res = ZSTD_compressStream(self->cctx, &self->output, &self->input);
             if (ZSTD_IS_ERROR(res)) {
-                php_error_docref(NULL, E_WARNING, "libzstd error %s\n", ZSTD_getErrorName(res));
+                php_error_docref(NULL, E_WARNING,
+                                 "libzstd error %s\n", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
                 return -1;
 #endif
@@ -714,7 +726,8 @@ php_stream_zstd_opener(
         return NULL;
     }
 
-    if (!strcmp(mode, "w") || !strcmp(mode, "wb") || !strcmp(mode, "a") || !strcmp(mode, "ab")) {
+    if (!strcmp(mode, "w") || !strcmp(mode, "wb")
+        || !strcmp(mode, "a") || !strcmp(mode, "ab")) {
        compress = 1;
     } else if (!strcmp(mode, "r") || !strcmp(mode, "rb")) {
        compress = 0;
@@ -727,11 +740,13 @@ php_stream_zstd_opener(
         zval *tmpzval;
         zend_string *data;
 
-        if (NULL != (tmpzval = php_stream_context_get_option(context, "zstd", "level"))) {
+        tmpzval = php_stream_context_get_option(context, "zstd", "level");
+        if (NULL != tmpzval) {
             level = zval_get_long(tmpzval);
         }
 #if ZSTD_VERSION_NUMBER >= 10400
-        if (NULL != (tmpzval = php_stream_context_get_option(context, "zstd", "dict"))) {
+        tmpzval = php_stream_context_get_option(context, "zstd", "dict");
+        if (NULL != tmpzval) {
             data = zval_get_string(tmpzval);
             if (compress) {
                 cdict = ZSTD_createCDict(ZSTR_VAL(data), ZSTR_LEN(data), level);
@@ -744,12 +759,15 @@ php_stream_zstd_opener(
     }
 
     if (level > ZSTD_maxCLevel()) {
-        php_error_docref(NULL, E_WARNING, "zstd: compression level (%d) must be less than %d", level, ZSTD_maxCLevel());
+        php_error_docref(NULL, E_WARNING,
+                         "zstd: compression level (%d) must be less than %d",
+                         level, ZSTD_maxCLevel());
         level = ZSTD_maxCLevel();
     }
 
     self = ecalloc(sizeof(*self), 1);
-    self->stream = php_stream_open_wrapper(path, mode, options | REPORT_ERRORS, NULL);
+    self->stream = php_stream_open_wrapper(path, mode,
+                                           options | REPORT_ERRORS, NULL);
     if (!self->stream) {
         efree(self);
         return NULL;
@@ -760,7 +778,8 @@ php_stream_zstd_opener(
         self->dctx = NULL;
         self->cctx = ZSTD_createCCtx();
         if (!self->cctx) {
-            php_error_docref(NULL, E_WARNING, "zstd: compression context failed");
+            php_error_docref(NULL, E_WARNING,
+                             "zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
             return NULL;
@@ -792,7 +811,8 @@ php_stream_zstd_opener(
     } else {
         self->dctx = ZSTD_createDCtx();
         if (!self->dctx) {
-            php_error_docref(NULL, E_WARNING, "zstd: compression context failed");
+            php_error_docref(NULL, E_WARNING,
+                             "zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
             return NULL;
