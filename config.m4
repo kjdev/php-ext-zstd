@@ -29,18 +29,20 @@ PHP_ARG_WITH(libzstd, whether to use system zstd library,
 
 if test "$PHP_ZSTD" != "no"; then
 
+  LIBZSTD_MIN_VERSION=1.4.0
+
   if test "$PHP_LIBZSTD" != "no"; then
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
     AC_MSG_CHECKING(for libzstd)
     if test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libzstd; then
-      if $PKG_CONFIG libzstd --atleast-version 1; then
+      if $PKG_CONFIG libzstd --atleast-version $LIBZSTD_MIN_VERSION; then
         LIBZSTD_CFLAGS=`$PKG_CONFIG libzstd --cflags`
         LIBZSTD_LIBDIR=`$PKG_CONFIG libzstd --libs`
         LIBZSTD_VERSON=`$PKG_CONFIG libzstd --modversion`
         AC_MSG_RESULT(from pkgconfig: version $LIBZSTD_VERSON)
       else
-        AC_MSG_ERROR(system libzstd is too old)
+        AC_MSG_ERROR(system libzstd mus be upgraded to version >= $LIBZSTD_MIN_VERSION)
       fi
     else
       AC_MSG_ERROR(pkg-config not found)
