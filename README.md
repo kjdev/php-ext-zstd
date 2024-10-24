@@ -60,6 +60,34 @@ php.ini:
 extension=zstd.so
 ```
 
+### Output handler option
+
+Name                            | Default | Changeable
+------------------------------- | ------- | ----------
+zstd.output\_compression        | 0       | PHP\_INI\_ALL
+zstd.output\_compression\_level | -1      | PHP\_INI\_ALL
+zstd.output\_compression\_dict  | ""      | PHP\_INI\_ALL
+
+* zstd.output\_compression _boolean_/_integer_
+
+    Whether to transparently compress pages.
+    If this option is set to "On" in php.ini or the Apache configuration,
+    pages are compressed if the browser sends an
+    "Accept-Encoding: zstd" header.
+    "Content-Encoding: zstd" and "Vary: Accept-Encoding" headers are added to
+    the output. In runtime, it can be set only before sending any output.
+
+* zstd.output\_compression\_level _integer_
+
+    Compression level used for transparent output compression.
+    Specify a value between 0 to 22.
+    The default value of -1 uses internally defined values (3).
+
+* zstd.output\_compression\_dict _string_
+
+    Specifies the path to the compressed dictionary file to be
+    used by the output handler.
+
 ## Constant
 
 Name                           | Description
@@ -199,6 +227,18 @@ function uncompress_dict ( $data, $dict )
 
 Zstd compression and decompression are available using the
 `compress.zstd://` stream prefix.
+
+## Output handler
+
+``` php
+ini_set('zstd.output_compression', 'On');
+// OR
+// ob_start('ob_zstd_handler');
+
+echo ...;
+```
+
+> "Accept-Encoding: zstd" must be specified.
 
 ## Examples
 
