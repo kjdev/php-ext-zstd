@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2024-01-28</date>
+ <date>2024-11-05</date>
  <version>
-  <release>0.13.3</release>
-  <api>0.13.3</api>
+  <release>0.14.0</release>
+  <api>0.14.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,7 +21,9 @@
  </stability>
  <license>MIT</license>
  <notes>
-- fix: incompatible pointer types (32-bit)
+- feat: output handler (PHP 8.0+)
+- feat: minimum system libzstd library version to 1.4.0
+- update: built-in zstd library to 1.5.6
  </notes>
  <contents>
   <dir name="/">
@@ -128,6 +130,25 @@
     <file name="dictionary.phpt" role="test" />
     <file name="dictionary_01.phpt" role="test" />
     <file name="info.phpt" role="test" />
+    <file name="ob_001.phpt" role="test" />
+    <file name="ob_002.phpt" role="test" />
+    <file name="ob_003.phpt" role="test" />
+    <file name="ob_004.phpt" role="test" />
+    <file name="ob_005.phpt" role="test" />
+    <file name="ob_006.phpt" role="test" />
+    <file name="ob_007.phpt" role="test" />
+    <file name="ob_008.phpt" role="test" />
+    <file name="ob_009.phpt" role="test" />
+    <file name="ob_010.phpt" role="test" />
+    <file name="ob_011.phpt" role="test" />
+    <file name="ob_012.phpt" role="test" />
+    <file name="ob_013.phpt" role="test" />
+    <file name="ob_014.phpt" role="test" />
+    <file name="ob_015.phpt" role="test" />
+    <file name="ob_016.phpt" role="test" />
+    <file name="ob_017.phpt" role="test" />
+    <file name="ob_018.phpt" role="test" />
+    <file name="ob_skipif.inc" role="test" />
     <file name="streaming.zst" role="test" />
     <file name="streams_1.phpt" role="test" />
     <file name="streams_2.phpt" role="test" />
@@ -138,6 +159,21 @@
     <file name="streams_7.phpt" role="test" />
     <file name="streams_8.phpt" role="test" />
     <file name="streams_9.phpt" role="test" />
+    <dir name="files">
+     <file name="ob_001.zstd" role="test" />
+     <file name="ob_003.zstd" role="test" />
+     <file name="ob_004.zstd" role="test" />
+     <file name="ob_007.zstd" role="test" />
+     <file name="ob_008.zstd" role="test" />
+     <file name="ob_011.zstd" role="test" />
+     <file name="ob_012.zstd" role="test" />
+     <file name="ob_013.zstd" role="test" />
+     <file name="ob_014.zstd" role="test" />
+     <file name="ob_015.zstd" role="test" />
+     <file name="ob_016.zstd" role="test" />
+     <file name="ob_017.zstd" role="test" />
+     <file name="ob_018.zstd" role="test" />
+    </dir>
    </dir>
   </dir>
  </contents>
