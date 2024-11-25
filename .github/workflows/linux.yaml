@@ -9,6 +9,8 @@ jobs:
     strategy:
       matrix:
         php:
+          - '8.4'
+          - '8.4-zts'
           - '8.3'
           - '8.3-zts'
           - '8.2'

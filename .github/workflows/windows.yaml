@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         php:
+          - '8.4'
           - '8.3'
           - '8.2'
           - '8.1'
@@ -22,19 +23,29 @@ jobs:
           - 'ts'
         vc:
           - vs16
+          - vs17
         library:
           - false
           - true
         apcu:
           - ''
           - 'apcu'
+        exclude:
+          - php: '8.4'
+            vc: vs16
+          - php: '8.3'
+            vc: vs17
+          - php: '8.2'
+            vc: vs17
+          - php: '8.1'
+            vc: vs17
 
     runs-on: windows-2019
 
     env:
       PHP_VER: ${{ matrix.php }}
       PECL_APCU: ${{ matrix.apcu }}
-      VC: vs16
+      VC: ${{ matrix.vc }}
       ARCH: ${{ matrix.arch }}
       TS: ${{ matrix.ts }}
 
