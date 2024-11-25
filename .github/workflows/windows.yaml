@@ -4,7 +4,7 @@ on: [push]
 
 env:
   PHP_EXT: zstd
-  BIN_SDK_VER: 2.2.0
+  BIN_SDK_VER: 2.3.0
 
 jobs:
   ci:
@@ -21,7 +21,7 @@ jobs:
         ts:
           - 'nts'
           - 'ts'
-        vc:
+        vs:
           - vs16
           - vs17
         library:
@@ -32,20 +32,23 @@ jobs:
           - 'apcu'
         exclude:
           - php: '8.4'
-            vc: vs16
+            vs: vs16
+          - php: '8.4'
+            vs: vs17
+            apcu: 'apcu' # Doesn't exist
           - php: '8.3'
-            vc: vs17
+            vs: vs17
           - php: '8.2'
-            vc: vs17
+            vs: vs17
           - php: '8.1'
-            vc: vs17
+            vs: vs17
 
-    runs-on: windows-2019
+    runs-on: ${{ matrix.vs == 'vs17' && 'windows-2022' || 'windows-2019' }}
 
     env:
       PHP_VER: ${{ matrix.php }}
       PECL_APCU: ${{ matrix.apcu }}
-      VC: ${{ matrix.vc }}
+      VS: ${{ matrix.vs }}
       ARCH: ${{ matrix.arch }}
       TS: ${{ matrix.ts }}
 
@@ -62,7 +65,7 @@ jobs:
         run: .\.github\workflows\vcpkg.ps1
         env:
           VCPKG_LIBRARY: zstd
-        if: ${{ matrix.library && matrix.vc == 'vs16' }}
+        if: ${{ matrix.library }}
 
       - name: Install build command
         run: .\.github\workflows\install.ps1
@@ -79,7 +82,7 @@ jobs:
       - name: Store artifact DLL
         uses: actions/upload-artifact@v4
         with:
-          name: php_${{ env.PHP_EXT }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vc }}-${{ matrix.arch }}
+          name: php_${{ env.PHP_EXT }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
           path: .\php_${{ env.PHP_EXT }}.dll
           overwrite: true
         if: ${{ ! matrix.library && matrix.apcu == '' }}

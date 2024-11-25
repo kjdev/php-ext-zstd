@@ -7,8 +7,8 @@ if (-not (Test-Path 'C:\php')) {
 # PHP SDK
 $bname = "php-sdk-$env:BIN_SDK_VER.zip"
 if (-not (Test-Path C:\php\$bname)) {
-    echo "Download: https://github.com/microsoft/php-sdk-binary-tools/archive/$bname"
-    Invoke-WebRequest "https://github.com/microsoft/php-sdk-binary-tools/archive/$bname" -OutFile "C:\php\$bname"
+    echo "Download: https://github.com/php/php-sdk-binary-tools/archive/$bname"
+    Invoke-WebRequest "https://github.com/php/php-sdk-binary-tools/archive/$bname" -OutFile "C:\php\$bname"
 }
 $dname0 = "php-sdk-binary-tools-php-sdk-$env:BIN_SDK_VER"
 $dname1 = "php-sdk-$env:BIN_SDK_VER"
@@ -32,7 +32,7 @@ $ts_part = ''
 if ('nts' -eq $env:TS) {
     $ts_part = '-nts'
 }
-$bname = "php-devel-pack-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
+$bname = "php-devel-pack-$php_version$ts_part-Win32-$env:VS-$env:ARCH.zip"
 if (-not (Test-Path "C:\php\$bname")) {
     try {
         echo "Download: https://windows.php.net/downloads/releases/$bname"
@@ -42,12 +42,12 @@ if (-not (Test-Path "C:\php\$bname")) {
         Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/$bname" -OutFile "C:\php\$bname"
     }
 }
-$dname = "php-$php_version-devel-$env:VC-$env:ARCH"
+$dname = "php-$php_version-devel-$env:VS-$env:ARCH"
 if (-not (Test-Path "C:\php\devel")) {
     Expand-Archive "C:\php\$bname" 'C:\php'
     if (-not (Test-Path "C:\php\$dname")) {
         $php_normalize_version = $php_version.Split("-")[0]
-        $dname = "php-$php_normalize_version-devel-$env:VC-$env:ARCH"
+        $dname = "php-$php_normalize_version-devel-$env:VS-$env:ARCH"
     }
     if (-not (Test-Path "C:\php\devel")) {
         Move-Item "C:\php\$dname" "C:\php\devel"
@@ -55,7 +55,7 @@ if (-not (Test-Path "C:\php\devel")) {
 }
 
 # PHP binary: "C:\php\bin"
-$bname = "php-$php_version$ts_part-Win32-$env:VC-$env:ARCH.zip"
+$bname = "php-$php_version$ts_part-Win32-$env:VS-$env:ARCH.zip"
 if (-not (Test-Path "C:\php\$bname")) {
     try {
         echo "Download: https://windows.php.net/downloads/releases/$bname"
@@ -71,7 +71,7 @@ if (-not (Test-Path "C:\php\bin")) {
 
 # library dependency: "C:\php\deps"
 if ("$env:DEP" -ne "") {
-    $bname = "$env:DEP-$env:VC-$env:ARCH.zip"
+    $bname = "$env:DEP-$env:VS-$env:ARCH.zip"
     if (-not (Test-Path "C:\php\$bname")) {
         echo "Download: https://windows.php.net/downloads/pecl/deps/$bname"
         Invoke-WebRequest "https://windows.php.net/downloads/pecl/deps/$bname" -OutFile "C:\php\$bname"
@@ -88,7 +88,7 @@ if (('' -ne $env:PECL_APCU) -and ('8.2' -ne $env:PHP_VER) -and ('8.3' -ne $env:P
         $ts_part = 'nts'
     }
 
-    $bname = "php_apcu-$apcu_version-$env:PHP_VER-$ts_part-$env:VC-$env:ARCH.zip"
+    $bname = "php_apcu-$apcu_version-$env:PHP_VER-$ts_part-$env:VS-$env:ARCH.zip"
 
     echo "Download: https://windows.php.net/downloads/pecl/releases/apcu/$apcu_version/$bname"
     Invoke-WebRequest "https://windows.php.net/downloads/pecl/releases/apcu/$apcu_version/$bname" -OutFile "C:\php\$bname"
