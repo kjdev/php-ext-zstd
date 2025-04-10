@@ -1,0 +1,14 @@
+{
+  "name": "kjdev/zstd",
+  "type": "php-ext",
+  "license": "MIT",
+  "description": "A compression/decompression with Zstandard",
+  "require": {
+    "php": ">= 7.0.0"
+  },
+  "php-ext": {
+    "extension-name": "zstd",
+    "download-url-method": "pre-packaged-source",
+    "configure-options": []
+  }
+}
