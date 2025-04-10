@@ -18,7 +18,10 @@ if (-not (Test-Path "C:\php\$dname1")) {
 }
 
 # PHP releases
-Invoke-WebRequest "https://windows.php.net/downloads/releases/releases.json" -OutFile "C:\php\releases.json"
+if (-not (Test-Path C:\php\releases.json)) {
+    echo "Download: https://windows.php.net/downloads/releases/releases.json"
+    Invoke-WebRequest "https://windows.php.net/downloads/releases/releases.json" -OutFile "C:\php\releases.json"
+}
 $php_version = (Get-Content -Path "C:\php\releases.json" | ConvertFrom-Json | ForEach-Object {
     if ($_."$env:PHP_VER") {
         return $_."$env:PHP_VER".version
