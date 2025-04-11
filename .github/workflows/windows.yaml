@@ -1,9 +1,13 @@
 name: Windows
 
-on: [push]
+on:
+  push:
+  release:
+    types: [published]
 
 env:
   PHP_EXT: zstd
+  PHP_EXT_VERSION: ${{ github.event.release.tag_name }}
   BIN_SDK_VER: 2.3.0
 
 jobs:
@@ -57,12 +61,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Checkout submodule
         run: .\.github\workflows\submodule.ps1
+        shell: pwsh
         if: ${{ ! matrix.library }}
       - name: Install dependency library
         run: .\.github\workflows\vcpkg.ps1
+        shell: pwsh
         env:
           VCPKG_LIBRARY: zstd
         if: ${{ matrix.library }}
@@ -75,20 +83,59 @@ jobs:
 
       - name: Install build command
         run: .\.github\workflows\install.ps1
+        shell: pwsh
 
       - name: Build
         run: .\.github\workflows\build.ps1
+        shell: pwsh
 
       - name: Test
         run: .\.github\workflows\test.ps1
+        shell: pwsh
         env:
           REPORT_EXIT_STATUS: 1
           NO_INTERACTION: 1
 
-      - name: Store artifact DLL
+      - if: ${{ github.event_name == 'release' }}
+        name: Archive DLL
+        run: |-
+          Copy-Item .\php_${{ env.PHP_EXT }}.dll .\$env:EXT_NAME.dll
+          Compress-Archive -Path .\$env:EXT_NAME.dll -Destination .\$env:EXT_NAME.zip
+        shell: pwsh
+        env:
+          EXT_NAME: php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
+
+      - if: ${{ github.event_name == 'release' }}
+        name: Store archive DLL
         uses: actions/upload-artifact@v4
         with:
-          name: php_${{ env.PHP_EXT }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
-          path: .\php_${{ env.PHP_EXT }}.dll
+          name: ${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
+          path: .\php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}.zip
           overwrite: true
-        if: ${{ ! matrix.library && matrix.apcu == '' }}
+
+  release:
+    permissions:
+      contents: write
+    needs: ci
+
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'release' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Upload artifacts
+        run: gh release upload ${{ env.PHP_EXT_VERSION }} artifacts/php* --clobber
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
