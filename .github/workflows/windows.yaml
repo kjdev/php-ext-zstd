@@ -79,7 +79,9 @@ jobs:
         with:
           path: |
             C:\php\php-*.zip
-          key: ${{ runner.os }}-php
+          key: ${{ runner.os }}-php-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
+          restore-keys: |
+            ${{ runner.os }}-php-
 
       - name: Install build command
         run: .\.github\workflows\install.ps1
@@ -96,21 +98,21 @@ jobs:
           REPORT_EXIT_STATUS: 1
           NO_INTERACTION: 1
 
-      - if: ${{ github.event_name == 'release' }}
+      - if: ${{ github.event_name == 'release' && matrix.library == false && matrix.apcu == '' }}
         name: Archive DLL
         run: |-
           Copy-Item .\php_${{ env.PHP_EXT }}.dll .\$env:EXT_NAME.dll
           Compress-Archive -Path .\$env:EXT_NAME.dll -Destination .\$env:EXT_NAME.zip
         shell: pwsh
         env:
-          EXT_NAME: php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
+          EXT_NAME: php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}
 
-      - if: ${{ github.event_name == 'release' }}
+      - if: ${{ github.event_name == 'release' && matrix.library == false && matrix.apcu == '' }}
         name: Store archive DLL
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}
-          path: .\php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch }}.zip
+          name: ${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}
+          path: .\php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}.zip
           overwrite: true
 
   release:
