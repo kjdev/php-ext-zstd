@@ -25,6 +25,8 @@ To use the system library
 % ./configure --with-libzstd
 ```
 
+> minimum system libzstd library version to 1.4.0
+
 Install from [pecl](https://pecl.php.net/package/zstd):
 
 ``` bash
