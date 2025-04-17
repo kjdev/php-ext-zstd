@@ -1,9 +1,5 @@
 --TEST--
 zstd_compress(): compress level
---SKIPIF--
-<?php
-if (LIBZSTD_VERSION_NUMBER < 10304) die("skip needs libzstd 1.3.4");
-?>
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');

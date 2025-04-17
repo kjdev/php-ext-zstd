@@ -1,9 +1,5 @@
 --TEST--
 compress.zstd streams with dictionary
---SKIPIF--
-<?php
-if (LIBZSTD_VERSION_NUMBER < 10400) die("skip needs libzstd 1.4.0");
-?>
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');
