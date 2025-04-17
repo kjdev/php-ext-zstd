@@ -73,6 +73,7 @@ if test "$PHP_ZSTD" != "no"; then
       zstd/lib/compress/zstd_lazy.c
       zstd/lib/compress/zstd_ldm.c
       zstd/lib/compress/zstd_opt.c
+      zstd/lib/compress/zstd_preSplit.c
       zstd/lib/compress/zstdmt_compress.c
     "
     ZSTD_DECOMPRESS_SOURCES="
