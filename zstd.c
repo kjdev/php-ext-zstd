@@ -345,51 +345,70 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 {
     char *input, *dict;
     size_t input_len, dict_len;
+    uint8_t streaming = 0;
     zend_string *output;
+    size_t result;
+    unsigned long long size;
+    ZSTD_DDict *ddict;
+    ZSTD_DCtx *dctx;
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_STRING(dict, dict_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    unsigned long long const rSize = ZSTD_getFrameContentSize(input,
-                                                              input_len);
-
-    if (rSize == 0 || rSize == ZSTD_CONTENTSIZE_ERROR) {
+    size = ZSTD_getFrameContentSize(input, input_len);
+    if (size == 0 || size == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
+    } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        streaming = 1;
+        size = ZSTD_DStreamOutSize();
     }
 
-    ZSTD_DCtx* const dctx = ZSTD_createDCtx();
-    if (dctx == NULL) {
-        ZSTD_WARNING("ZSTD_createDCtx() error");
-        RETURN_FALSE;
-    }
-    ZSTD_DDict* const ddict = ZSTD_createDDict(dict,
-                                               dict_len);
+    ddict = ZSTD_createDDict(dict, dict_len);
     if (!ddict) {
-        ZSTD_freeDStream(dctx);
         ZSTD_WARNING("ZSTD_createDDict() error");
         RETURN_FALSE;
     }
 
-    output = zend_string_alloc(rSize, 0);
+    output = zend_string_alloc(size, 0);
 
-    size_t const dSize = ZSTD_decompress_usingDDict(dctx, ZSTR_VAL(output), rSize,
-                                                    input,
-                                                    input_len,
-                                                    ddict);
-    if (dSize != rSize) {
-        ZSTD_freeDStream(dctx);
-        ZSTD_freeDDict(ddict);
+    dctx = ZSTD_createDCtx();
+    if (dctx == NULL) {
         zend_string_efree(output);
-        ZSTD_WARNING("%s", ZSTD_getErrorName(dSize));
+        ZSTD_freeDDict(ddict);
+        ZSTD_WARNING("ZSTD_createDCtx() error");
         RETURN_FALSE;
     }
+
+    if (!streaming) {
+        result = ZSTD_decompress_usingDDict(dctx, ZSTR_VAL(output), size,
+                                            input, input_len, ddict);
+        if (ZSTD_IS_ERROR(result)) {
+            zend_string_efree(output);
+            ZSTD_freeDCtx(dctx);
+            ZSTD_freeDDict(ddict);
+            ZSTD_WARNING("%s", ZSTD_getErrorName(result));
+            RETURN_FALSE;
+        } else if (result != size) {
+            zend_string_efree(output);
+            ZSTD_freeDCtx(dctx);
+            ZSTD_freeDDict(ddict);
+            ZSTD_WARNING("failed to decompress");
+            RETURN_FALSE;
+        }
+    } else {
+        zend_string_efree(output);
+        ZSTD_freeDDict(ddict);
+        ZSTD_WARNING("can not decompress stream");
+        RETURN_FALSE;
+    }
+
     ZSTD_freeDCtx(dctx);
     ZSTD_freeDDict(ddict);
 
-    output = zstd_string_output_truncate(output, dSize);
+    output = zstd_string_output_truncate(output, result);
     RETVAL_NEW_STR(output);
 }
 
