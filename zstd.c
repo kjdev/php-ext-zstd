@@ -397,10 +397,42 @@ ZEND_FUNCTION(zstd_uncompress_dict)
             RETURN_FALSE;
         }
     } else {
-        zend_string_efree(output);
-        ZSTD_freeDDict(ddict);
-        ZSTD_WARNING("can not decompress stream");
-        RETURN_FALSE;
+        ZSTD_inBuffer in = { NULL, 0, 0 };
+        ZSTD_outBuffer out = { NULL, 0, 0 };
+
+        ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
+        ZSTD_DCtx_refDDict(dctx, ddict);
+
+        in.src = input;
+        in.size = input_len;
+        in.pos = 0;
+
+        out.dst = ZSTR_VAL(output);
+        out.size = size;
+        out.pos = 0;
+
+        while (in.pos < in.size) {
+            if (out.pos == out.size) {
+                out.size += size;
+                output = zend_string_extend(output, out.size, 0);
+                out.dst = ZSTR_VAL(output);
+            }
+
+            result = ZSTD_decompressStream(dctx, &out, &in);
+            if (ZSTD_IS_ERROR(result)) {
+                zend_string_efree(output);
+                ZSTD_freeDCtx(dctx);
+                ZSTD_freeDDict(ddict);
+                ZSTD_WARNING("%s", ZSTD_getErrorName(result));
+                RETURN_FALSE;
+            }
+
+            if (result == 0) {
+                break;
+            }
+        }
+
+        result = out.pos;
     }
 
     ZSTD_freeDCtx(dctx);
