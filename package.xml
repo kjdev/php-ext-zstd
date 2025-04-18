@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2024-11-05</date>
+ <date>2025-04-18</date>
  <version>
-  <release>0.14.0</release>
-  <api>0.14.0</api>
+  <release>0.15.0</release>
+  <api>0.15.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,9 +21,13 @@
  </stability>
  <license>MIT</license>
  <notes>
-- feat: output handler (PHP 8.0+)
-- feat: minimum system libzstd library version to 1.4.0
-- update: built-in zstd library to 1.5.6
+- feat: support stream with zstd_uncompress_dict()
+- change: error message
+- refactor: zstd_compress_dict
+- refactor: zstd_uncompress_dict
+- test: change to fit the minimum system libzstd library version
+- test: add stream for zstd_uncompress_dict()
+- chore: update built-in zstd library to 1.5.7
  </notes>
  <contents>
   <dir name="/">
@@ -94,6 +98,8 @@
       <file name="zstd_ldm_geartab.h" role="src" />
       <file name="zstd_opt.c" role="src" />
       <file name="zstd_opt.h" role="src" />
+      <file name="zstd_preSplit.c" role="src" />
+      <file name="zstd_preSplit.h" role="src" />
       <file name="zstdmt_compress.c" role="src" />
       <file name="zstdmt_compress.h" role="src" />
      </dir>
@@ -119,7 +125,6 @@
     <file name="005_b.phpt" role="test" />
     <file name="006.phpt" role="test" />
     <file name="007.phpt" role="test" />
-    <file name="008.phpt" role="test" />
     <file name="009.phpt" role="test" />
     <file name="010.phpt" role="test" />
     <file name="011.phpt" role="test" />
