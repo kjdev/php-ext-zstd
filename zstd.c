@@ -289,10 +289,11 @@ ZEND_FUNCTION(zstd_uncompress)
 ZEND_FUNCTION(zstd_compress_dict)
 {
     zend_long level = DEFAULT_COMPRESS_LEVEL;
-
     zend_string *output;
     char *input, *dict;
-    size_t input_len, dict_len;
+    size_t input_len, dict_len, size, result;
+    ZSTD_CCtx *cctx;
+    ZSTD_CDict *cdict;
 
     ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_STRING(input, input_len)
@@ -305,40 +306,37 @@ ZEND_FUNCTION(zstd_compress_dict)
         RETURN_FALSE;
     }
 
-    ZSTD_CCtx* const cctx = ZSTD_createCCtx();
+    cctx = ZSTD_createCCtx();
     if (cctx == NULL) {
         ZSTD_WARNING("ZSTD_createCCtx() error");
         RETURN_FALSE;
     }
-    ZSTD_CDict* const cdict = ZSTD_createCDict(dict,
-                                               dict_len,
-                                               (int)level);
+
+    cdict = ZSTD_createCDict(dict, dict_len, (int) level);
     if (!cdict) {
         ZSTD_freeCStream(cctx);
         ZSTD_WARNING("ZSTD_createCDict() error");
         RETURN_FALSE;
     }
 
-    size_t const cBuffSize = ZSTD_compressBound(input_len);
-    output = zend_string_alloc(cBuffSize, 0);
+    size = ZSTD_compressBound(input_len);
+    output = zend_string_alloc(size, 0);
 
-    size_t const cSize = ZSTD_compress_usingCDict(cctx, ZSTR_VAL(output), cBuffSize,
-                                                  input,
-                                                  input_len,
-                                                  cdict);
-    if (ZSTD_IS_ERROR(cSize)) {
+    result = ZSTD_compress_usingCDict(cctx, ZSTR_VAL(output), size,
+                                      input, input_len, cdict);
+    if (ZSTD_IS_ERROR(result)) {
         ZSTD_freeCStream(cctx);
         ZSTD_freeCDict(cdict);
         zend_string_efree(output);
-        ZSTD_WARNING("%s", ZSTD_getErrorName(cSize));
+        ZSTD_WARNING("%s", ZSTD_getErrorName(result));
         RETURN_FALSE;
     }
 
-    output = zstd_string_output_truncate(output, cSize);
-    RETVAL_NEW_STR(output);
-
     ZSTD_freeCCtx(cctx);
     ZSTD_freeCDict(cdict);
+
+    output = zstd_string_output_truncate(output, result);
+    RETVAL_NEW_STR(output);
 }
 
 ZEND_FUNCTION(zstd_uncompress_dict)
