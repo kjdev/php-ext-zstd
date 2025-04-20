@@ -356,7 +356,9 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     ZEND_PARSE_PARAMETERS_END();
 
     size = ZSTD_getFrameContentSize(input, input_len);
-    if (size == 0 || size == ZSTD_CONTENTSIZE_ERROR) {
+    if (size == 0) {
+        RETURN_EMPTY_STRING();
+    } else if (size == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
     } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
