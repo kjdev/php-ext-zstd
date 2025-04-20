@@ -584,13 +584,13 @@ ZEND_FUNCTION(zstd_uncompress_add)
     size_t res = 1;
     const size_t grow = ZSTD_DStreamOutSize();
 
-    ctx->output.pos = 0;
     while (in.pos < in.size && res > 0) {
         if (ctx->output.pos == ctx->output.size) {
             ctx->output.size += grow;
             ctx->output.dst = erealloc(ctx->output.dst, ctx->output.size);
         }
 
+        ctx->output.pos = 0;
         res = ZSTD_decompressStream(ctx->dctx, &ctx->output, &in);
         if (ZSTD_isError(res)) {
             php_error_docref(NULL, E_WARNING,
