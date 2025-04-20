@@ -4,23 +4,37 @@ Incremental compression
 <?php
 include(dirname(__FILE__) . '/data.inc');
 
-$handle= zstd_compress_init();
-var_dump($handle);
+foreach ([128, 512, 1024] as $size) {
+  var_dump($size);
+  $handle= zstd_compress_init();
+  var_dump($handle);
 
-$pos= 0;
-$compressed= '';
-while ($pos < strlen($data)) {
-  $chunk= substr($data, $pos, 1024);
-  $compressed.= zstd_compress_add($handle, $chunk, 0);
-  $pos+= strlen($chunk);
+  $pos= 0;
+  $compressed= '';
+  while ($pos < strlen($data)) {
+    $chunk= substr($data, $pos, $size);
+    $compressed.= zstd_compress_add($handle, $chunk, 0);
+    $pos+= strlen($chunk);
+  }
+  $compressed.= zstd_compress_add($handle, '', 1);
+  var_dump(strlen($compressed), strlen($compressed) < strlen($data));
+
+  var_dump($data === zstd_uncompress($compressed));
 }
-$compressed.= zstd_compress_add($handle, '', 1);
-var_dump(strlen($compressed), strlen($compressed) < strlen($data));
-
-var_dump($data === zstd_uncompress($compressed));
 ?>
 ===Done===
 --EXPECTF--
+int(128)
+resource(%d) of type (zstd.state)
+int(%d)
+bool(true)
+bool(true)
+int(512)
+resource(%d) of type (zstd.state)
+int(%d)
+bool(true)
+bool(true)
+int(1024)
 resource(%d) of type (zstd.state)
 int(%d)
 bool(true)

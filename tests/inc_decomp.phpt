@@ -14,7 +14,7 @@ foreach ([128, 512, 1024] as $size) {
   $pos= 0;
   $decompressed= '';
   while ($pos < strlen($compressed)) {
-    $chunk= substr($compressed, $pos, 1024);
+    $chunk= substr($compressed, $pos, $size);
     $decompressed.= zstd_uncompress_add($handle, $chunk);
     $pos+= strlen($chunk);
   }
