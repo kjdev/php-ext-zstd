@@ -363,7 +363,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         RETURN_FALSE;
     } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
         streaming = 1;
-        size = ZSTD_DStreamOutSize();
+        size = ZSTD_DStreamOutSize() + input_len;
     }
 
     ddict = ZSTD_createDDict(dict, dict_len);
@@ -401,6 +401,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     } else {
         ZSTD_inBuffer in = { NULL, 0, 0 };
         ZSTD_outBuffer out = { NULL, 0, 0 };
+        size_t chunk = ZSTD_DStreamOutSize();
 
         ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
         ZSTD_DCtx_refDDict(dctx, ddict);
@@ -415,7 +416,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 
         while (in.pos < in.size) {
             if (out.pos == out.size) {
-                out.size += size;
+                out.size += chunk;
                 output = zend_string_extend(output, out.size, 0);
                 out.dst = ZSTR_VAL(output);
             }
