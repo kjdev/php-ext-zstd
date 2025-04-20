@@ -6,17 +6,17 @@ include(dirname(__FILE__) . '/data.inc');
 
 foreach ([128, 512, 1024] as $size) {
   var_dump($size);
-  $handle= zstd_compress_init();
+  $handle = zstd_compress_init();
   var_dump($handle);
 
   $pos= 0;
-  $compressed= '';
+  $compressed = '';
   while ($pos < strlen($data)) {
-    $chunk= substr($data, $pos, $size);
-    $compressed.= zstd_compress_add($handle, $chunk, 0);
-    $pos+= strlen($chunk);
+    $chunk = substr($data, $pos, $size);
+    $compressed .= zstd_compress_add($handle, $chunk, false);
+    $pos += strlen($chunk);
   }
-  $compressed.= zstd_compress_add($handle, '', 1);
+  $compressed .= zstd_compress_add($handle, '', true);
   var_dump(strlen($compressed), strlen($compressed) < strlen($data));
 
   var_dump($data === zstd_uncompress($compressed));

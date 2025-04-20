@@ -4,22 +4,22 @@ Incremental decompression
 <?php
 include(dirname(__FILE__) . '/data.inc');
 
-$compressed= zstd_compress($data);
+$compressed = zstd_compress($data);
 
 foreach ([128, 512, 1024] as $size) {
   var_dump($size);
-  $handle= zstd_uncompress_init();
+  $handle = zstd_uncompress_init();
   var_dump($handle);
 
   $pos= 0;
-  $decompressed= '';
+  $uncompressed = '';
   while ($pos < strlen($compressed)) {
-    $chunk= substr($compressed, $pos, $size);
-    $decompressed.= zstd_uncompress_add($handle, $chunk);
-    $pos+= strlen($chunk);
+    $chunk = substr($compressed, $pos, $size);
+    $uncompressed .= zstd_uncompress_add($handle, $chunk);
+    $pos += strlen($chunk);
   }
 
-  var_dump($data === $decompressed);
+  var_dump($data === $uncompressed);
 }
 ?>
 ===Done===
