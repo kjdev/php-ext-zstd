@@ -455,7 +455,10 @@ static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
 static void php_zstd_state_rsrc_dtor(zend_resource *res)
 {
     php_zstd_context *ctx = zend_fetch_resource(res, NULL, le_state);
-    php_zstd_output_handler_context_free(ctx);
+    if (ctx) {
+        php_zstd_output_handler_context_free(ctx);
+        efree(ctx);
+    }
 }
 
 ZEND_FUNCTION(zstd_compress_init)
@@ -579,12 +582,12 @@ ZEND_FUNCTION(zstd_uncompress_add)
 
     ZSTD_inBuffer in = { in_buf, in_size, 0 };
     size_t res = 1;
-    uint64_t size;
+    const size_t grow = ZSTD_DStreamOutSize();
 
     ctx->output.pos = 0;
     while (in.pos < in.size && res > 0) {
         if (ctx->output.pos == ctx->output.size) {
-            ctx->output.size += size;
+            ctx->output.size += grow;
             ctx->output.dst = erealloc(ctx->output.dst, ctx->output.size);
         }
 
