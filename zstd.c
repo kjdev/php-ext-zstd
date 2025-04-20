@@ -540,7 +540,6 @@ ZEND_FUNCTION(zstd_compress_add)
 ZEND_FUNCTION(zstd_uncompress_init)
 {
     php_zstd_context *ctx = php_zstd_output_handler_context_init();
-    size_t result;
 
     ctx->dctx = ZSTD_createDCtx();
     if (ctx->dctx == NULL) {
@@ -565,7 +564,6 @@ ZEND_FUNCTION(zstd_uncompress_add)
     php_zstd_context *ctx;
     char *in_buf;
     size_t in_size;
-    zend_bool end = 0;
     smart_string out = {0};
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
