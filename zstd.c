@@ -314,7 +314,7 @@ ZEND_FUNCTION(zstd_compress_dict)
 
     cdict = ZSTD_createCDict(dict, dict_len, (int) level);
     if (!cdict) {
-        ZSTD_freeCStream(cctx);
+        ZSTD_freeCCtx(cctx);
         ZSTD_WARNING("failed to load dictionary");
         RETURN_FALSE;
     }
@@ -325,7 +325,7 @@ ZEND_FUNCTION(zstd_compress_dict)
     result = ZSTD_compress_usingCDict(cctx, ZSTR_VAL(output), size,
                                       input, input_len, cdict);
     if (ZSTD_IS_ERROR(result)) {
-        ZSTD_freeCStream(cctx);
+        ZSTD_freeCCtx(cctx);
         ZSTD_freeCDict(cdict);
         zend_string_efree(output);
         ZSTD_WARNING("%s", ZSTD_getErrorName(result));
