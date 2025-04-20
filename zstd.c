@@ -38,6 +38,8 @@
 #endif
 #include "php_zstd.h"
 
+int le_state;
+
 /* zstd */
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -64,6 +66,7 @@
 #define ZSTD_IS_ERROR(result) \
     UNEXPECTED(ZSTD_isError(result))
 
+/* One-shot functions */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, level)
@@ -82,6 +85,25 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, dictBuffer)
+ZEND_END_ARG_INFO()
+
+/* Incremental functions */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_init, 0, 0, 0)
+    ZEND_ARG_INFO(0, level)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_add, 0, 0, 2)
+    ZEND_ARG_INFO(0, context)
+    ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, end)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_init, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_add, 0, 0, 2)
+    ZEND_ARG_INFO(0, context)
+    ZEND_ARG_INFO(0, data)
 ZEND_END_ARG_INFO()
 
 #if PHP_VERSION_ID >= 80000
@@ -393,6 +415,193 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     RETVAL_NEW_STR(output);
 }
 
+struct _php_zstd_context {
+    ZSTD_CCtx* cctx;
+    ZSTD_DCtx* dctx;
+    ZSTD_CDict *cdict;
+    ZSTD_inBuffer input;
+    ZSTD_outBuffer output;
+};
+
+static php_zstd_context* php_zstd_output_handler_context_init(void)
+{
+    php_zstd_context *ctx
+        = (php_zstd_context *) ecalloc(1, sizeof(php_zstd_context));
+    ctx->cctx = NULL;
+    ctx->dctx = NULL;
+    return ctx;
+}
+
+static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
+{
+    if (ctx->cctx) {
+        ZSTD_freeCCtx(ctx->cctx);
+        ctx->cctx = NULL;
+    }
+    if (ctx->dctx) {
+        ZSTD_freeDCtx(ctx->dctx);
+        ctx->dctx = NULL;
+    }
+    if (ctx->cdict) {
+        ZSTD_freeCDict(ctx->cdict);
+        ctx->cdict = NULL;
+    }
+    if (ctx->output.dst) {
+        efree(ctx->output.dst);
+        ctx->output.dst = NULL;
+    }
+}
+
+static void php_zstd_state_rsrc_dtor(zend_resource *res)
+{
+    php_zstd_context *ctx = zend_fetch_resource(res, NULL, le_state);
+    php_zstd_output_handler_context_free(ctx);
+}
+
+ZEND_FUNCTION(zstd_compress_init)
+{
+    zend_long level = DEFAULT_COMPRESS_LEVEL;
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(level)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (!zstd_check_compress_level(level)) {
+        RETURN_FALSE;
+    }
+
+    php_zstd_context *ctx = php_zstd_output_handler_context_init();
+
+    ctx->cctx = ZSTD_createCCtx();
+    if (ctx->cctx == NULL) {
+        efree(ctx);
+        ZSTD_WARNING("ZSTD_createCCtx() error");
+        RETURN_FALSE;
+    }
+    ctx->cdict = NULL;
+
+    ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
+    ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, level);
+
+    ctx->output.size = ZSTD_CStreamOutSize();
+    ctx->output.dst  = emalloc(ctx->output.size);
+    ctx->output.pos  = 0;
+
+    RETURN_RES(zend_register_resource(ctx, le_state));
+}
+
+ZEND_FUNCTION(zstd_compress_add)
+{
+    zval *resource;
+    php_zstd_context *ctx;
+    char *in_buf;
+    size_t in_size;
+    zend_bool end = 0;
+    smart_string out = {0};
+
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_RESOURCE(resource)
+        Z_PARAM_STRING(in_buf, in_size)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_BOOL(end)
+    ZEND_PARSE_PARAMETERS_END();
+
+    ctx = zend_fetch_resource(Z_RES_P(resource), NULL, le_state);
+    if (ctx == NULL) {
+        php_error_docref(NULL, E_WARNING,
+                         "ZStandard incremental compress resource failed");
+        RETURN_FALSE;
+    }
+
+    ZSTD_inBuffer in = { in_buf, in_size, 0 };
+    size_t res;
+
+    do {
+        ctx->output.pos = 0;
+        res = ZSTD_compressStream2(ctx->cctx, &ctx->output,
+                                   &in, end ? ZSTD_e_end : ZSTD_e_flush);
+        if (ZSTD_isError(res)) {
+            php_error_docref(NULL, E_WARNING,
+                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            smart_string_free(&out);
+            RETURN_FALSE;
+        }
+        smart_string_appendl(&out, ctx->output.dst, ctx->output.pos);
+    } while (res > 0);
+
+    RETVAL_STRINGL(out.c, out.len);
+    smart_string_free(&out);
+}
+
+ZEND_FUNCTION(zstd_uncompress_init)
+{
+    php_zstd_context *ctx = php_zstd_output_handler_context_init();
+    size_t result;
+
+    ctx->dctx = ZSTD_createDCtx();
+    if (ctx->dctx == NULL) {
+        efree(ctx);
+        ZSTD_WARNING("ZSTD_createCCtx() error");
+        RETURN_FALSE;
+    }
+    ctx->cdict = NULL;
+
+    ZSTD_DCtx_reset(ctx->dctx, ZSTD_reset_session_only);
+
+    ctx->output.size = ZSTD_CStreamOutSize();
+    ctx->output.dst  = emalloc(ctx->output.size);
+    ctx->output.pos  = 0;
+
+    RETURN_RES(zend_register_resource(ctx, le_state));
+}
+
+ZEND_FUNCTION(zstd_uncompress_add)
+{
+    zval *resource;
+    php_zstd_context *ctx;
+    char *in_buf;
+    size_t in_size;
+    zend_bool end = 0;
+    smart_string out = {0};
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_RESOURCE(resource)
+        Z_PARAM_STRING(in_buf, in_size)
+    ZEND_PARSE_PARAMETERS_END();
+
+    ctx = zend_fetch_resource(Z_RES_P(resource), NULL, le_state);
+    if (ctx == NULL) {
+        php_error_docref(NULL, E_WARNING,
+                         "ZStandard incremental uncompress resource failed");
+        RETURN_FALSE;
+    }
+
+    ZSTD_inBuffer in = { in_buf, in_size, 0 };
+    size_t res = 1;
+    uint64_t size;
+
+    ctx->output.pos = 0;
+    while (in.pos < in.size && res > 0) {
+        if (ctx->output.pos == ctx->output.size) {
+            ctx->output.size += size;
+            ctx->output.dst = erealloc(ctx->output.dst, ctx->output.size);
+        }
+
+        res = ZSTD_decompressStream(ctx->dctx, &ctx->output, &in);
+        if (ZSTD_isError(res)) {
+            php_error_docref(NULL, E_WARNING,
+                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            smart_string_free(&out);
+            RETURN_FALSE;
+        }
+
+        smart_string_appendl(&out, ctx->output.dst, ctx->output.pos);
+    }
+
+    RETVAL_STRINGL(out.c, out.len);
+    smart_string_free(&out);
+}
 
 typedef struct _php_zstd_stream_data {
     char *bufin, *bufout;
@@ -835,13 +1044,6 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
 #if PHP_VERSION_ID >= 80000
 #define PHP_ZSTD_OUTPUT_HANDLER_NAME "zstd output compression"
 
-struct _php_zstd_context {
-    ZSTD_CCtx* cctx;
-    ZSTD_CDict *cdict;
-    ZSTD_inBuffer input;
-    ZSTD_outBuffer output;
-};
-
 static int php_zstd_output_encoding(void)
 {
     zval *enc;
@@ -864,13 +1066,6 @@ static int php_zstd_output_encoding(void)
         }
     }
     return PHP_ZSTD_G(compression_coding);
-}
-
-static php_zstd_context* php_zstd_output_handler_context_init(void)
-{
-    php_zstd_context *ctx
-        = (php_zstd_context *) ecalloc(1, sizeof(php_zstd_context));
-    return ctx;
 }
 
 static void
@@ -942,22 +1137,6 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
     ctx->output.pos = 0;
 
     return SUCCESS;
-}
-
-static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
-{
-    if (ctx->cctx) {
-        ZSTD_freeCCtx(ctx->cctx);
-        ctx->cctx = NULL;
-    }
-    if (ctx->cdict) {
-        ZSTD_freeCDict(ctx->cdict);
-        ctx->cdict = NULL;
-    }
-    if (ctx->output.dst) {
-        efree(ctx->output.dst);
-        ctx->output.dst = NULL;
-    }
 }
 
 static void php_zstd_output_handler_context_dtor(void *opaq)
@@ -1298,6 +1477,10 @@ ZEND_MINIT_FUNCTION(zstd)
                            ZSTD_VERSION_STRING,
                            CONST_CS | CONST_PERSISTENT);
 
+    le_state = zend_register_list_destructors_ex(php_zstd_state_rsrc_dtor,
+                                                 NULL, "zstd.state",
+                                                 module_number);
+
     php_register_url_stream_wrapper(STREAM_NAME, &php_stream_zstd_wrapper);
 
 #if defined(HAVE_APCU_SUPPORT)
@@ -1397,6 +1580,11 @@ static zend_function_entry zstd_functions[] = {
     ZEND_FALIAS(zstd_decompress_usingcdict,
                 zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
 
+    ZEND_FE(zstd_compress_init, arginfo_zstd_compress_init)
+    ZEND_FE(zstd_compress_add, arginfo_zstd_compress_add)
+    ZEND_FE(zstd_uncompress_init, arginfo_zstd_uncompress_init)
+    ZEND_FE(zstd_uncompress_add, arginfo_zstd_uncompress_add)
+
     ZEND_NS_FALIAS(PHP_ZSTD_NS, compress,
                    zstd_compress, arginfo_zstd_compress)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress,
@@ -1415,6 +1603,15 @@ static zend_function_entry zstd_functions[] = {
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
     ZEND_NS_FALIAS(PHP_ZSTD_NS, decompress_usingcdict,
                    zstd_uncompress_dict, arginfo_zstd_uncompress_dict)
+
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, compress_init,
+                   zstd_compress_init, arginfo_zstd_compress_init)
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, compress_add,
+                   zstd_compress_add, arginfo_zstd_compress_add)
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress_init,
+                   zstd_uncompress_init, arginfo_zstd_uncompress_init)
+    ZEND_NS_FALIAS(PHP_ZSTD_NS, uncompress_add,
+                   zstd_uncompress_add, arginfo_zstd_uncompress_add)
 
 #if PHP_VERSION_ID >= 80000
     ZEND_FE(ob_zstd_handler, arginfo_ob_zstd_handler)
