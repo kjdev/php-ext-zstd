@@ -549,7 +549,7 @@ ZEND_FUNCTION(zstd_uncompress_init)
 
     ZSTD_DCtx_reset(ctx->dctx, ZSTD_reset_session_only);
 
-    ctx->output.size = ZSTD_CStreamOutSize();
+    ctx->output.size = ZSTD_DStreamOutSize();
     ctx->output.dst  = emalloc(ctx->output.size);
     ctx->output.pos  = 0;
 
