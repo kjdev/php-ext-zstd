@@ -237,7 +237,7 @@ Returns a zstd context resource (zstd.state) on success, or FALSE on failure
 
 #### Description
 
-string **zstd\_compress\_addt** ( resource *$context*, string *$data* [, bool *$end* = false ] )
+string **zstd\_compress\_add** ( resource *$context*, string *$data* [, bool *$end* = false ] )
 
 Incrementally compress data
 
@@ -277,7 +277,7 @@ Returns a zstd context resource (zstd.state) on success, or FALSE on failure
 
 #### Description
 
-string **zstd\_uncompress\_addt** ( resource *$context*, string *$data* )
+string **zstd\_uncompress\_add** ( resource *$context*, string *$data* )
 
 Incrementally uncompress data
 
