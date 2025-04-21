@@ -544,7 +544,7 @@ ZEND_FUNCTION(zstd_uncompress_init)
     ctx->dctx = ZSTD_createDCtx();
     if (ctx->dctx == NULL) {
         efree(ctx);
-        ZSTD_WARNING("ZSTD_createCCtx() error");
+        ZSTD_WARNING("ZSTD_createDCtx() error");
         RETURN_FALSE;
     }
     ctx->cdict = NULL;
