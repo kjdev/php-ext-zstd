@@ -64,13 +64,13 @@ static const zend_function_entry zstd_context_methods[] = {
     ZEND_FE_END
 };
 
-struct _php_zstd_context {
+typedef struct _php_zstd_context {
     ZSTD_CCtx* cctx;
     ZSTD_DCtx* dctx;
     ZSTD_CDict *cdict;
     ZSTD_inBuffer input;
     ZSTD_outBuffer output;
-};
+} php_zstd_context;
 
 typedef struct {
     php_zstd_context *ctx;
