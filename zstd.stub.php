@@ -2,6 +2,8 @@
 
 namespace {
 
+  class ZstdContext {}
+
   function zstd_compress(string $data, int $level = 3): string|false {}
 
   function zstd_uncompress(string $data): string|false {}
@@ -21,6 +23,8 @@ namespace {
 }
 
 namespace Zstd {
+
+  class ZstdContext {}
 
   function compress(string $data, int $level = 3): string|false {}
 
