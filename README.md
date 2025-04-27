@@ -104,9 +104,9 @@ LIBZSTD\_VERSION\_STRING       | libzstd version string
 * zstd\_uncompress — Zstandard decompression
 * zstd\_compress\_dict — Zstandard compression using a digested dictionary
 * zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
-* zstd\_compress_\init — Initialize an incremental compress context
+* zstd\_compress\_init — Initialize an incremental compress context
 * zstd\_compress\_add — Incrementally compress data
-* zstd\_uncompress_\init — Initialize an incremental uncompress context
+* zstd\_uncompress\_init — Initialize an incremental uncompress context
 * zstd\_uncompress\_add — Incrementally uncompress data
 
 
@@ -270,7 +270,7 @@ Initialize an incremental uncompress context
 
 #### Return Values
 
-Returns a zstd context instance success, or FALSE on failure
+Returns a zstd context instance on success, or FALSE on failure
 
 
 ### zstd\_uncompress\_add — Incrementally uncompress data
@@ -314,7 +314,7 @@ function uncompress_add ( $context, $data )
 
 `zstd_compress`, `zstd_uncompress`, `zstd_compress_dict`,
 `zstd_uncompress_dict`, `zstd_compress_init`, `zstd_compress_add`,
-`zstd_uncompress_init` and `zstd_uncompress_add` function alias.
+`zstd_uncompress_init` and `zstd_uncompress_add` function aliases.
 
 ## Streams
 
