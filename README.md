@@ -218,7 +218,7 @@ Returns the decompressed data or FALSE if an error occurred.
 
 #### Description
 
-resource **zstd\_compress\_init** ( [ int _$level_ = ZSTD_COMPRESS_LEVEL_DEFAULT ] )
+Zstd\\Compress\\Context **zstd\_compress\_init** ( [ int _$level_ = ZSTD_COMPRESS_LEVEL_DEFAULT ] )
 
 Initialize an incremental compress context
 
@@ -237,7 +237,7 @@ Returns a zstd context instance on success, or FALSE on failure
 
 #### Description
 
-string **zstd\_compress\_add** ( ZstdContext _$context_, string _$data_ [, bool _$end_ = false ] )
+string **zstd\_compress\_add** ( Zstd\\Compress\\Context _$context_, string _$data_ [, bool _$end_ = false ] )
 
 Incrementally compress data
 
@@ -264,7 +264,7 @@ Returns a chunk of compressed data, or FALSE on failure.
 
 #### Description
 
-resource **zstd\_uncompress\_init** ( void )
+Zstd\\UnCompress\\Context **zstd\_uncompress\_init** ( void )
 
 Initialize an incremental uncompress context
 
@@ -277,7 +277,7 @@ Returns a zstd context instance on success, or FALSE on failure
 
 #### Description
 
-string **zstd\_uncompress\_add** ( ZstdContext _$context_, string _$data_ )
+string **zstd\_uncompress\_add** ( Zstd\\UnCompress\\Context _$context_, string _$data_ )
 
 Incrementally uncompress data
 

@@ -37,6 +37,7 @@
 #include <zend_smart_str.h>
 #endif
 #include <Zend/zend_API.h>
+#include <Zend/zend_interfaces.h>
 #include "php_zstd.h"
 
 /* zstd */
@@ -70,31 +71,30 @@ struct _php_zstd_context {
     ZSTD_CDict *cdict;
     ZSTD_inBuffer input;
     ZSTD_outBuffer output;
+    zend_object std;
 };
 
-typedef struct {
-    php_zstd_context *ctx;
-    zend_object zo;
-} zstd_context_object;
-
-static inline zstd_context_object *zstd_context_object_from_obj(zend_object *obj) {
-    return (zstd_context_object*)((char*)(obj) - XtOffsetOf(zstd_context_object, zo));
-}
-
-#define Z_ZSTD_CONTEXT_P(zv)  zstd_context_object_from_obj(Z_OBJ_P((zv)))
-
-static zend_object_handlers zstd_context_object_handlers;
-
-static php_zstd_context* php_zstd_output_handler_context_init(void)
+/* Zstd Compress/UnCompress Context */
+static php_zstd_context *php_zstd_context_from_obj(zend_object *obj)
 {
-    php_zstd_context *ctx
-        = (php_zstd_context *) ecalloc(1, sizeof(php_zstd_context));
-    ctx->cctx = NULL;
-    ctx->dctx = NULL;
-    return ctx;
+    return (php_zstd_context *)
+        ((char *)(obj) - XtOffsetOf(php_zstd_context, std));
 }
 
-static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
+#define PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(ce) \
+  object_init_ex(return_value, ce); \
+  php_zstd_context *ctx = php_zstd_context_from_obj(Z_OBJ_P(return_value)); \
+  ctx->cctx = NULL; \
+  ctx->dctx = NULL; \
+  ctx->cdict = 0; \
+  ctx->input.src = NULL; \
+  ctx->input.size = 0; \
+  ctx->input.pos = 0; \
+  ctx->output.dst = NULL; \
+  ctx->output.size = 0; \
+  ctx->output.pos = 0;
+
+static void php_zstd_context_free(php_zstd_context *ctx)
 {
     if (ctx->cctx) {
         ZSTD_freeCCtx(ctx->cctx);
@@ -114,24 +114,126 @@ static void php_zstd_output_handler_context_free(php_zstd_context *ctx)
     }
 }
 
-static zend_object *zstd_context_objects_new(zend_class_entry *class_type)
+static void php_zstd_context_free_obj(zend_object *object)
 {
-    zstd_context_object *intern = zend_object_alloc(sizeof(zstd_context_object), class_type);
-
-    zend_object_std_init(&intern->zo, class_type);
-    object_properties_init(&intern->zo, class_type);
-    return &intern->zo;
+    php_zstd_context *intern = php_zstd_context_from_obj(object);
+    php_zstd_context_free(intern);
+    zend_object_std_dtor(&intern->std);
 }
 
-static void zstd_context_free_objects_storage(zend_object *object)
+static zend_object *
+php_zstd_context_create_object(zend_class_entry *class_type,
+                               zend_object_handlers *handlers)
 {
-    zstd_context_object *intern = zstd_context_object_from_obj(object);
-    if (intern->ctx) {
-        php_zstd_output_handler_context_free(intern->ctx);
-        efree(intern->ctx);
-    }
-    zend_object_std_dtor(&intern->zo);
+    php_zstd_context *intern;
+#if PHP_VERSION_ID >= 80000
+    intern = zend_object_alloc(sizeof(php_zstd_context), class_type);
+#else
+    intern = ecalloc(1,
+                     sizeof(php_zstd_context)
+                     + zend_object_properties_size(class_type));
+#endif
+    zend_object_std_init(&intern->std, class_type);
+    object_properties_init(&intern->std, class_type);
+    intern->std.handlers = handlers;
+
+    return &intern->std;
 }
+
+/* Zstd Compress Context */
+zend_class_entry *php_zstd_compress_context_ce;
+static zend_object_handlers php_zstd_compress_context_object_handlers;
+
+static zend_object *
+php_zstd_compress_context_create_object(zend_class_entry *class_type)
+{
+    return php_zstd_context_create_object(
+        class_type,
+        &php_zstd_compress_context_object_handlers);
+}
+
+static zend_function *
+php_zstd_compress_context_get_constructor(zend_object *object)
+{
+    zend_throw_error(NULL,
+                     "Cannot directly construct Zstd\\Compress\\Context, "
+                     "use zstd_compress_init() instead");
+    return NULL;
+}
+
+static zend_class_entry *php_zstd_compress_context_register_class(void)
+{
+    zend_class_entry ce, *class_entry;
+
+    INIT_NS_CLASS_ENTRY(ce, "Zstd\\Compress", "Context", NULL);
+#if PHP_VERSION_ID >= 80000
+    class_entry = zend_register_internal_class_ex(&ce, NULL);
+#if PHP_VERSION_ID >= 80100
+    class_entry->ce_flags |= ZEND_ACC_FINAL|ZEND_ACC_NO_DYNAMIC_PROPERTIES|ZEND_ACC_NOT_SERIALIZABLE;
+#else
+    class_entry->ce_flags |= ZEND_ACC_FINAL|ZEND_ACC_NO_DYNAMIC_PROPERTIES;
+#endif
+#else
+    ce.create_object = php_zstd_compress_context_create_object;
+    class_entry = zend_register_internal_class(&ce);
+    class_entry->ce_flags |= ZEND_ACC_FINAL;
+#endif
+
+    return class_entry;
+}
+
+/* Zstd UnCompress Context */
+zend_class_entry *php_zstd_uncompress_context_ce;
+static zend_object_handlers php_zstd_uncompress_context_object_handlers;
+
+static zend_object *
+php_zstd_uncompress_context_create_object(zend_class_entry *class_type)
+{
+    return php_zstd_context_create_object(
+        class_type,
+        &php_zstd_uncompress_context_object_handlers);
+}
+
+static zend_function *
+php_zstd_uncompress_context_get_constructor(zend_object *object)
+{
+    zend_throw_error(NULL,
+                     "Cannot directly construct Zstd\\UnCompress\\Context, "
+                     "use zstd_uncompress_init() instead");
+    return NULL;
+}
+
+static zend_class_entry *php_zstd_uncompress_context_register_class(void)
+{
+    zend_class_entry ce, *class_entry;
+
+    INIT_NS_CLASS_ENTRY(ce, "Zstd\\UnCompress", "Context", NULL);
+#if PHP_VERSION_ID >= 80000
+    class_entry = zend_register_internal_class_ex(&ce, NULL);
+#if PHP_VERSION_ID >= 80100
+    class_entry->ce_flags |= ZEND_ACC_FINAL|ZEND_ACC_NO_DYNAMIC_PROPERTIES|ZEND_ACC_NOT_SERIALIZABLE;
+#else
+    class_entry->ce_flags |= ZEND_ACC_FINAL|ZEND_ACC_NO_DYNAMIC_PROPERTIES;
+#endif
+#else
+    ce.create_object = php_zstd_uncompress_context_create_object;
+    class_entry = zend_register_internal_class(&ce);
+    class_entry->ce_flags |= ZEND_ACC_FINAL;
+#endif
+
+    return class_entry;
+}
+
+static php_zstd_context* php_zstd_output_handler_context_init(void)
+{
+    php_zstd_context *ctx
+        = (php_zstd_context *) ecalloc(1, sizeof(php_zstd_context));
+    ctx->cctx = NULL;
+    ctx->dctx = NULL;
+    return ctx;
+}
+
+#define php_zstd_output_handler_context_free(ctx) php_zstd_context_free(ctx)
 
 #define ZSTD_WARNING(...) \
     php_error_docref(NULL, E_WARNING, __VA_ARGS__)
@@ -501,11 +603,11 @@ ZEND_FUNCTION(zstd_compress_init)
         RETURN_FALSE;
     }
 
-    php_zstd_context *ctx = php_zstd_output_handler_context_init();
+    PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_compress_context_ce);
 
     ctx->cctx = ZSTD_createCCtx();
     if (ctx->cctx == NULL) {
-        efree(ctx);
+        zval_ptr_dtor(return_value);
         ZSTD_WARNING("ZSTD_createCCtx() error");
         RETURN_FALSE;
     }
@@ -517,28 +619,37 @@ ZEND_FUNCTION(zstd_compress_init)
     ctx->output.size = ZSTD_CStreamOutSize();
     ctx->output.dst  = emalloc(ctx->output.size);
     ctx->output.pos  = 0;
-
-    object_init_ex(return_value, zstd_context_ptr);
-    Z_ZSTD_CONTEXT_P(return_value)->ctx = ctx;
 }
 
 ZEND_FUNCTION(zstd_compress_add)
 {
-    zend_object *context;
     php_zstd_context *ctx;
     char *in_buf;
     size_t in_size;
     zend_bool end = 0;
     smart_string out = {0};
+#if PHP_VERSION_ID >= 80000
+    zend_object *obj;
+#else
+    zval *obj;
+#endif
 
     ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_OBJ_OF_CLASS(context, zstd_context_ptr)
+#if PHP_VERSION_ID >= 80000
+        Z_PARAM_OBJ_OF_CLASS(obj, php_zstd_compress_context_ce)
+#else
+        Z_PARAM_OBJECT_OF_CLASS(obj, php_zstd_compress_context_ce)
+#endif
         Z_PARAM_STRING(in_buf, in_size)
         Z_PARAM_OPTIONAL
         Z_PARAM_BOOL(end)
     ZEND_PARSE_PARAMETERS_END();
 
-    ctx = zstd_context_object_from_obj(context)->ctx;
+#if PHP_VERSION_ID >= 80000
+    ctx = php_zstd_context_from_obj(obj);
+#else
+    ctx = php_zstd_context_from_obj(Z_OBJ_P(obj));
+#endif
     if (ctx == NULL || ctx->cctx == NULL) {
         php_error_docref(NULL, E_WARNING,
                          "ZStandard incremental compress resource failed");
@@ -567,11 +678,11 @@ ZEND_FUNCTION(zstd_compress_add)
 
 ZEND_FUNCTION(zstd_uncompress_init)
 {
-    php_zstd_context *ctx = php_zstd_output_handler_context_init();
+    PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_uncompress_context_ce);
 
     ctx->dctx = ZSTD_createDCtx();
     if (ctx->dctx == NULL) {
-        efree(ctx);
+        zval_ptr_dtor(return_value);
         ZSTD_WARNING("ZSTD_createDCtx() error");
         RETURN_FALSE;
     }
@@ -582,9 +693,6 @@ ZEND_FUNCTION(zstd_uncompress_init)
     ctx->output.size = ZSTD_DStreamOutSize();
     ctx->output.dst  = emalloc(ctx->output.size);
     ctx->output.pos  = 0;
-
-    object_init_ex(return_value, zstd_context_ptr);
-    Z_ZSTD_CONTEXT_P(return_value)->ctx = ctx;
 }
 
 ZEND_FUNCTION(zstd_uncompress_add)
@@ -594,13 +702,26 @@ ZEND_FUNCTION(zstd_uncompress_add)
     char *in_buf;
     size_t in_size;
     smart_string out = {0};
+#if PHP_VERSION_ID >= 80000
+    zend_object *obj;
+#else
+    zval *obj;
+#endif
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
-        Z_PARAM_OBJ_OF_CLASS(context, zstd_context_ptr)
+#if PHP_VERSION_ID >= 80000
+        Z_PARAM_OBJ_OF_CLASS(obj, php_zstd_uncompress_context_ce)
+#else
+        Z_PARAM_OBJECT_OF_CLASS(obj, php_zstd_uncompress_context_ce)
+#endif
         Z_PARAM_STRING(in_buf, in_size)
     ZEND_PARSE_PARAMETERS_END();
 
-    ctx = zstd_context_object_from_obj(context)->ctx;
+#if PHP_VERSION_ID >= 80000
+    ctx = php_zstd_context_from_obj(obj);
+#else
+    ctx = php_zstd_context_from_obj(Z_OBJ_P(obj));
+#endif
     if (ctx == NULL || ctx->dctx == NULL) {
         php_error_docref(NULL, E_WARNING,
                          "ZStandard incremental uncompress resource failed");
@@ -1509,17 +1630,61 @@ ZEND_MINIT_FUNCTION(zstd)
 
     php_register_url_stream_wrapper(STREAM_NAME, &php_stream_zstd_wrapper);
 
-    zend_class_entry ce;
-    INIT_CLASS_ENTRY(ce, "ZstdContext", zstd_context_methods);
-    zstd_context_ptr = zend_register_internal_class_ex(&ce, NULL);
+    php_zstd_compress_context_ce
+        = php_zstd_compress_context_register_class();
+#if PHP_VERSION_ID >= 80000
+   php_zstd_compress_context_ce->create_object
+       = php_zstd_compress_context_create_object;
+#if PHP_VERSION_ID >= 80300
+   php_zstd_compress_context_ce->default_object_handlers
+       = &php_zstd_compress_context_object_handlers;
+#endif
+#if PHP_VERSION_ID < 80100
+   php_zstd_compress_context_ce->serialize = zend_class_serialize_deny;
+   php_zstd_compress_context_ce->unserialize = zend_class_unserialize_deny;
+#endif
+#endif
+    memcpy(&php_zstd_compress_context_object_handlers,
+           &std_object_handlers, sizeof(zend_object_handlers));
+    php_zstd_compress_context_object_handlers.offset
+        = XtOffsetOf(php_zstd_context, std);
+    php_zstd_compress_context_object_handlers.free_obj
+        = php_zstd_context_free_obj;
+    php_zstd_compress_context_object_handlers.get_constructor
+        = php_zstd_compress_context_get_constructor;
+    php_zstd_compress_context_object_handlers.clone_obj = NULL;
+#if PHP_VERSION_ID >= 80000
+    php_zstd_compress_context_object_handlers.compare
+        = zend_objects_not_comparable;
+#endif
 
-    memcpy(&zstd_context_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-    zstd_context_object_handlers.offset = XtOffsetOf(zstd_context_object, zo);
-    zstd_context_object_handlers.free_obj = zstd_context_free_objects_storage;
-    zstd_context_object_handlers.clone_obj = NULL;
-
-    zstd_context_ptr->create_object = zstd_context_objects_new;
-    zstd_context_ptr->default_object_handlers = &zstd_context_object_handlers;
+    php_zstd_uncompress_context_ce
+        = php_zstd_uncompress_context_register_class();
+#if PHP_VERSION_ID >= 80000
+    php_zstd_uncompress_context_ce->create_object
+        = php_zstd_uncompress_context_create_object;
+#if PHP_VERSION_ID >= 80300
+    php_zstd_uncompress_context_ce->default_object_handlers
+        = &php_zstd_uncompress_context_object_handlers;
+#endif
+#if PHP_VERSION_ID < 80100
+    php_zstd_uncompress_context_ce->serialize = zend_class_serialize_deny;
+    php_zstd_uncompress_context_ce->unserialize = zend_class_unserialize_deny;
+#endif
+#endif
+    memcpy(&php_zstd_uncompress_context_object_handlers,
+           &std_object_handlers, sizeof(zend_object_handlers));
+    php_zstd_uncompress_context_object_handlers.offset
+        = XtOffsetOf(php_zstd_context, std);
+    php_zstd_uncompress_context_object_handlers.free_obj
+        = php_zstd_context_free_obj;
+    php_zstd_uncompress_context_object_handlers.get_constructor
+        = php_zstd_uncompress_context_get_constructor;
+    php_zstd_uncompress_context_object_handlers.clone_obj = NULL;
+#if PHP_VERSION_ID >= 80000
+    php_zstd_uncompress_context_object_handlers.compare
+        = zend_objects_not_comparable;
+#endif
 
 #if defined(HAVE_APCU_SUPPORT)
     apc_register_serializer("zstd",

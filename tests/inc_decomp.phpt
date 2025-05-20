@@ -25,15 +25,15 @@ foreach ([128, 512, 1024] as $size) {
 ===Done===
 --EXPECTF--
 int(128)
-object(ZstdContext)#%d (0) {
+object(Zstd\UnCompress\Context)#%d (0) {
 }
 bool(true)
 int(512)
-object(ZstdContext)#%d (0) {
+object(Zstd\UnCompress\Context)#%d (0) {
 }
 bool(true)
 int(1024)
-object(ZstdContext)#%d (0) {
+object(Zstd\UnCompress\Context)#%d (0) {
 }
 bool(true)
 ===Done===
