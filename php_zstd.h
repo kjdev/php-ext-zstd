@@ -42,9 +42,9 @@ extern zend_module_entry zstd_module_entry;
 #include "TSRM.h"
 #endif
 
-#if PHP_VERSION_ID >= 80000
 typedef struct _php_zstd_context php_zstd_context;
 
+#if PHP_VERSION_ID >= 80000
 ZEND_BEGIN_MODULE_GLOBALS(zstd)
     zend_long output_compression;
     zend_long output_compression_default;

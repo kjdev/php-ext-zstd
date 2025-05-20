@@ -104,6 +104,11 @@ LIBZSTD\_VERSION\_STRING       | libzstd version string
 * zstd\_uncompress — Zstandard decompression
 * zstd\_compress\_dict — Zstandard compression using a digested dictionary
 * zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
+* zstd\_compress\_init — Initialize an incremental compress context
+* zstd\_compress\_add — Incrementally compress data
+* zstd\_uncompress\_init — Initialize an incremental uncompress context
+* zstd\_uncompress\_add — Incrementally uncompress data
+
 
 ### zstd\_compress — Zstandard compression
 
@@ -209,6 +214,88 @@ Zstandard decompression using a digested dictionary.
 Returns the decompressed data or FALSE if an error occurred.
 
 
+### zstd\_compress\_init — Initialize an incremental compress context
+
+#### Description
+
+Zstd\\Compress\\Context **zstd\_compress\_init** ( [ int _$level_ = ZSTD_COMPRESS_LEVEL_DEFAULT ] )
+
+Initialize an incremental compress context
+
+#### Parameters
+
+* _level_
+
+  The higher the level, the slower the compression. (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
+
+#### Return Values
+
+Returns a zstd context instance on success, or FALSE on failure
+
+
+### zstd\_compress\_add — Incrementally compress data
+
+#### Description
+
+string **zstd\_compress\_add** ( Zstd\\Compress\\Context _$context_, string _$data_ [, bool _$end_ = false ] )
+
+Incrementally compress data
+
+#### Parameters
+
+* _context_
+
+  A context created with `zstd_compress_init()`.
+
+* _data_
+
+  A chunk of data to compress.
+
+* _end_
+
+  Set to true to terminate with the last chunk of data.
+
+#### Return Values
+
+Returns a chunk of compressed data, or FALSE on failure.
+
+
+### zstd\_uncompress\_init — Initialize an incremental uncompress context
+
+#### Description
+
+Zstd\\UnCompress\\Context **zstd\_uncompress\_init** ( void )
+
+Initialize an incremental uncompress context
+
+#### Return Values
+
+Returns a zstd context instance on success, or FALSE on failure
+
+
+### zstd\_uncompress\_add — Incrementally uncompress data
+
+#### Description
+
+string **zstd\_uncompress\_add** ( Zstd\\UnCompress\\Context _$context_, string _$data_ )
+
+Incrementally uncompress data
+
+#### Parameters
+
+* _context_
+
+  A context created with `zstd_uncompress_init()`.
+
+* _data_
+
+  A chunk of compressed data.
+
+#### Return Values
+
+Returns a chunk of uncompressed data, or FALSE on failure.
+
+
 ## Namespace
 
 ```
@@ -218,10 +305,16 @@ function compress( $data [, $level = 3 ] )
 function uncompress( $data )
 function compress_dict ( $data, $dict )
 function uncompress_dict ( $data, $dict )
+function compress_init ( [ $level = 3 ] )
+function compress_add ( $context, $data [, $end = false ] )
+function uncompress_init ()
+function uncompress_add ( $context, $data )
+
 ```
 
-`zstd_compress`, `zstd_uncompress`, `zstd_compress_dict` and
-`zstd_uncompress_dict` function alias.
+`zstd_compress`, `zstd_uncompress`, `zstd_compress_dict`,
+`zstd_uncompress_dict`, `zstd_compress_init`, `zstd_compress_add`,
+`zstd_uncompress_init` and `zstd_uncompress_add` function aliases.
 
 ## Streams
 
