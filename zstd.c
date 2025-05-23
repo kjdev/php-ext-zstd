@@ -543,51 +543,100 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     char *input, *dict;
     size_t input_len, dict_len;
     zend_string *output;
+    uint8_t streaming = 0;
+    size_t result;
+    unsigned long long size;
+    ZSTD_DCtx *dctx;
+    ZSTD_DDict *ddict;
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_STRING(dict, dict_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    unsigned long long const rSize = ZSTD_getFrameContentSize(input,
-                                                              input_len);
-
-    if (rSize == 0 || rSize == ZSTD_CONTENTSIZE_ERROR) {
+    size = ZSTD_getFrameContentSize(input, input_len);
+    if (size == 0) {
+        RETURN_EMPTY_STRING();
+    } else if (size == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
+    } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
+        streaming = 1;
+        size = input_len + ZSTD_DStreamOutSize();
     }
 
-    ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+    dctx = ZSTD_createDCtx();
     if (dctx == NULL) {
-        ZSTD_WARNING("ZSTD_createDCtx() error");
+        ZSTD_WARNING("failed to prepare uncompression");
         RETURN_FALSE;
     }
-    ZSTD_DDict* const ddict = ZSTD_createDDict(dict,
-                                               dict_len);
+    ddict = ZSTD_createDDict(dict, dict_len);
     if (!ddict) {
-        ZSTD_freeDStream(dctx);
-        ZSTD_WARNING("ZSTD_createDDict() error");
+        ZSTD_freeDCtx(dctx);
+        ZSTD_WARNING("failed to load dictionary");
         RETURN_FALSE;
     }
 
-    output = zend_string_alloc(rSize, 0);
+    output = zend_string_alloc(size, 0);
 
-    size_t const dSize = ZSTD_decompress_usingDDict(dctx, ZSTR_VAL(output), rSize,
-                                                    input,
-                                                    input_len,
-                                                    ddict);
-    if (dSize != rSize) {
-        ZSTD_freeDStream(dctx);
-        ZSTD_freeDDict(ddict);
-        zend_string_efree(output);
-        ZSTD_WARNING("%s", ZSTD_getErrorName(dSize));
-        RETURN_FALSE;
+    if (!streaming) {
+        result = ZSTD_decompress_usingDDict(dctx, ZSTR_VAL(output), size,
+                                            input, input_len, ddict);
+        if (ZSTD_IS_ERROR(result)) {
+            zend_string_efree(output);
+            ZSTD_WARNING("%s", ZSTD_getErrorName(result));
+            RETVAL_FALSE;
+        } else if (result != size) {
+            zend_string_efree(output);
+            ZSTD_WARNING("failed to uncompress");
+            RETVAL_FALSE;
+        } else {
+            output = zstd_string_output_truncate(output, result);
+            RETVAL_NEW_STR(output);
+        }
+    } else {
+        ZSTD_inBuffer in = { NULL, 0, 0 };
+        ZSTD_outBuffer out = { NULL, 0, 0 };
+        size_t chunk = ZSTD_DStreamOutSize();
+
+        ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
+        ZSTD_DCtx_refDDict(dctx, ddict);
+
+        in.src = input;
+        in.size = input_len;
+        in.pos = 0;
+
+        out.dst = ZSTR_VAL(output);
+        out.size = size;
+        out.pos = 0;
+
+        while (in.pos < in.size) {
+            if (out.pos == out.size) {
+                out.size += chunk;
+                output = zend_string_extend(output, out.size, 0);
+                out.dst = ZSTR_VAL(output);
+            }
+
+            result = ZSTD_decompressStream(dctx, &out, &in);
+            if (ZSTD_IS_ERROR(result)) {
+                zend_string_efree(output);
+                ZSTD_freeDCtx(dctx);
+                ZSTD_freeDDict(ddict);
+                ZSTD_WARNING("%s", ZSTD_getErrorName(result));
+                RETURN_FALSE;
+            }
+
+            if (result == 0) {
+                break;
+            }
+        }
+
+        output = zstd_string_output_truncate(output, out.pos);
+        RETVAL_NEW_STR(output);
     }
+
     ZSTD_freeDCtx(dctx);
     ZSTD_freeDDict(ddict);
-
-    output = zstd_string_output_truncate(output, dSize);
-    RETVAL_NEW_STR(output);
 }
 
 ZEND_FUNCTION(zstd_compress_init)
