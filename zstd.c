@@ -422,7 +422,7 @@ ZEND_FUNCTION(zstd_uncompress)
 
         if (ZSTD_IS_ERROR(result)) {
             zend_string_efree(output);
-            ZSTD_WARNING("can not decompress stream");
+            ZSTD_WARNING("%s", ZSTD_getErrorName(result));
             RETURN_FALSE;
         }
 
@@ -434,7 +434,7 @@ ZEND_FUNCTION(zstd_uncompress)
         stream = ZSTD_createDStream();
         if (stream == NULL) {
             zend_string_efree(output);
-            ZSTD_WARNING("can not create stream");
+            ZSTD_WARNING("failed to create uncompress context");
             RETURN_FALSE;
         }
 
@@ -442,7 +442,7 @@ ZEND_FUNCTION(zstd_uncompress)
         if (ZSTD_IS_ERROR(result)) {
             zend_string_efree(output);
             ZSTD_freeDStream(stream);
-            ZSTD_WARNING("can not init stream");
+            ZSTD_WARNING("%s", ZSTD_getErrorName(result));
             RETURN_FALSE;
         }
 
@@ -465,7 +465,7 @@ ZEND_FUNCTION(zstd_uncompress)
             if (ZSTD_IS_ERROR(result)) {
                 zend_string_efree(output);
                 ZSTD_freeDStream(stream);
-                ZSTD_WARNING("can not decompress stream");
+                ZSTD_WARNING("%s", ZSTD_getErrorName(result));
                 RETURN_FALSE;
             }
 
@@ -504,7 +504,7 @@ ZEND_FUNCTION(zstd_compress_dict)
 
     ZSTD_CCtx* const cctx = ZSTD_createCCtx();
     if (cctx == NULL) {
-        ZSTD_WARNING("ZSTD_createCCtx() error");
+        ZSTD_WARNING("failed to create compress context");
         RETURN_FALSE;
     }
     ZSTD_CDict* const cdict = ZSTD_createCDict(dict,
@@ -512,7 +512,7 @@ ZEND_FUNCTION(zstd_compress_dict)
                                                (int)level);
     if (!cdict) {
         ZSTD_freeCStream(cctx);
-        ZSTD_WARNING("ZSTD_createCDict() error");
+        ZSTD_WARNING("failed to load dictionary");
         RETURN_FALSE;
     }
 
@@ -657,7 +657,7 @@ ZEND_FUNCTION(zstd_compress_init)
     ctx->cctx = ZSTD_createCCtx();
     if (ctx->cctx == NULL) {
         zval_ptr_dtor(return_value);
-        ZSTD_WARNING("ZSTD_createCCtx() error");
+        ZSTD_WARNING("failed to create compress context");
         RETURN_FALSE;
     }
     ctx->cdict = NULL;
@@ -700,8 +700,7 @@ ZEND_FUNCTION(zstd_compress_add)
     ctx = php_zstd_context_from_obj(Z_OBJ_P(obj));
 #endif
     if (ctx == NULL || ctx->cctx == NULL) {
-        php_error_docref(NULL, E_WARNING,
-                         "ZStandard incremental compress resource failed");
+        ZSTD_WARNING("failed to prepare incremental compress");
         RETURN_FALSE;
     }
 
@@ -713,8 +712,7 @@ ZEND_FUNCTION(zstd_compress_add)
         res = ZSTD_compressStream2(ctx->cctx, &ctx->output,
                                    &in, end ? ZSTD_e_end : ZSTD_e_flush);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING,
-                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            ZSTD_WARNING("%s", ZSTD_getErrorName(res));
             smart_string_free(&out);
             RETURN_FALSE;
         }
@@ -732,7 +730,7 @@ ZEND_FUNCTION(zstd_uncompress_init)
     ctx->dctx = ZSTD_createDCtx();
     if (ctx->dctx == NULL) {
         zval_ptr_dtor(return_value);
-        ZSTD_WARNING("ZSTD_createDCtx() error");
+        ZSTD_WARNING("failed to create uncompress context");
         RETURN_FALSE;
     }
     ctx->cdict = NULL;
@@ -772,8 +770,7 @@ ZEND_FUNCTION(zstd_uncompress_add)
     ctx = php_zstd_context_from_obj(Z_OBJ_P(obj));
 #endif
     if (ctx == NULL || ctx->dctx == NULL) {
-        php_error_docref(NULL, E_WARNING,
-                         "ZStandard incremental uncompress resource failed");
+        ZSTD_WARNING("failed to prepare incremental uncompress");
         RETURN_FALSE;
     }
 
@@ -790,8 +787,7 @@ ZEND_FUNCTION(zstd_uncompress_add)
         ctx->output.pos = 0;
         res = ZSTD_decompressStream(ctx->dctx, &ctx->output, &in);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING,
-                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            ZSTD_WARNING("%s", ZSTD_getErrorName(res));
             smart_string_free(&out);
             RETURN_FALSE;
         }
@@ -856,8 +852,7 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
         res = ZSTD_compressStream2(self->cctx, &self->output, &in,
                                    end ? ZSTD_e_end : ZSTD_e_flush);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING,
-                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
             ret = EOF;
         }
         php_stream_write(self->stream, self->output.dst, self->output.pos);
@@ -938,8 +933,7 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
             res = ZSTD_decompressStream(self->dctx,
                                         &self->output, &self->input);
             if (ZSTD_IS_ERROR(res)) {
-                php_error_docref(NULL, E_WARNING,
-                                 "libzstd error %s\n", ZSTD_getErrorName(res));
+                ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
                 return -1;
 #endif
@@ -979,8 +973,7 @@ php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
         res = ZSTD_compressStream2(self->cctx, &self->output,
                                    &in, ZSTD_e_continue);
         if (ZSTD_isError(res)) {
-            php_error_docref(NULL, E_WARNING,
-                             "libzstd error %s\n", ZSTD_getErrorName(res));
+            ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
             return -1;
 #endif
@@ -1077,9 +1070,8 @@ php_stream_zstd_opener(
     }
 
     if (level > ZSTD_maxCLevel()) {
-        php_error_docref(NULL, E_WARNING,
-                         "zstd: compression level (%d) must be less than %d",
-                         level, ZSTD_maxCLevel());
+        ZSTD_WARNING("zstd: compression level (%d) must be less than %d",
+                     level, ZSTD_maxCLevel());
         level = ZSTD_maxCLevel();
     }
 
@@ -1096,8 +1088,7 @@ php_stream_zstd_opener(
         self->dctx = NULL;
         self->cctx = ZSTD_createCCtx();
         if (!self->cctx) {
-            php_error_docref(NULL, E_WARNING,
-                             "zstd: compression context failed");
+            ZSTD_WARNING("zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
             return NULL;
@@ -1115,8 +1106,7 @@ php_stream_zstd_opener(
     } else {
         self->dctx = ZSTD_createDCtx();
         if (!self->dctx) {
-            php_error_docref(NULL, E_WARNING,
-                             "zstd: compression context failed");
+            ZSTD_WARNING("zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
             return NULL;
