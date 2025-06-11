@@ -26,6 +26,6 @@ Warning: zstd_compress() expects at least 1 parameter, 0 given in %s on line %d
 bool(false)
 *** Testing with incorrect parameters ***
 
-Warning: zstd_compress(): expects parameter to be string. in %s on line %d
+Warning: zstd_compress() expects parameter 1 to be string, object given in %s on line %d
 bool(false)
 ===Done===
