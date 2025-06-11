@@ -337,25 +337,11 @@ ZEND_FUNCTION(zstd_compress)
     char *input;
     size_t input_len;
 
-#if PHP_VERSION_ID < 80000
-    zval *data;
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
-                              "z|l", &data, &level) == FAILURE) {
-      RETURN_FALSE;
-    }
-    if (Z_TYPE_P(data) != IS_STRING) {
-      zend_error(E_WARNING, "zstd_compress(): expects parameter to be string.");
-      RETURN_FALSE;
-    }
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-#else
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
-    ZEND_PARSE_PARAMETERS_END();
-#endif
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -386,24 +372,9 @@ ZEND_FUNCTION(zstd_uncompress)
     char *input;
     size_t input_len;
 
-#if PHP_VERSION_ID < 80000
-    zval *data;
-    if (zend_parse_parameters(ZEND_NUM_ARGS(),
-                              "z", &data) == FAILURE) {
-      RETURN_FALSE;
-    }
-    if (Z_TYPE_P(data) != IS_STRING) {
-      zend_error(E_WARNING,
-                 "zstd_uncompress(): expects parameter to be string.");
-      RETURN_FALSE;
-    }
-    input = Z_STRVAL_P(data);
-    input_len = Z_STRLEN_P(data);
-#else
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(input, input_len)
-    ZEND_PARSE_PARAMETERS_END();
-#endif
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     size = ZSTD_getFrameContentSize(input, input_len);
     if (size == ZSTD_CONTENTSIZE_ERROR) {
@@ -496,7 +467,7 @@ ZEND_FUNCTION(zstd_compress_dict)
         Z_PARAM_STRING(dict, dict_len)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -552,7 +523,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(input, input_len)
         Z_PARAM_STRING(dict, dict_len)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     size = ZSTD_getFrameContentSize(input, input_len);
     if (size == 0) {
@@ -646,7 +617,7 @@ ZEND_FUNCTION(zstd_compress_init)
     ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     if (!zstd_check_compress_level(level)) {
         RETURN_FALSE;
@@ -692,7 +663,7 @@ ZEND_FUNCTION(zstd_compress_add)
         Z_PARAM_STRING(in_buf, in_size)
         Z_PARAM_OPTIONAL
         Z_PARAM_BOOL(end)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
 #if PHP_VERSION_ID >= 80000
     ctx = php_zstd_context_from_obj(obj);
@@ -762,7 +733,7 @@ ZEND_FUNCTION(zstd_uncompress_add)
         Z_PARAM_OBJECT_OF_CLASS(obj, php_zstd_uncompress_context_ce)
 #endif
         Z_PARAM_STRING(in_buf, in_size)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
 #if PHP_VERSION_ID >= 80000
     ctx = php_zstd_context_from_obj(obj);
