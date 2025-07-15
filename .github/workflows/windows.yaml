@@ -47,7 +47,7 @@ jobs:
           - php: '8.1'
             vs: vs17
 
-    runs-on: ${{ matrix.vs == 'vs17' && 'windows-2022' || 'windows-2019' }}
+    runs-on: windows-latest
 
     env:
       PHP_VER: ${{ matrix.php }}
