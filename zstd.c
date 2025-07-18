@@ -748,10 +748,7 @@ ZEND_FUNCTION(zstd_uncompress_add)
 typedef struct _php_zstd_stream_data {
     char *bufin, *bufout;
     size_t sizein, sizeout;
-    ZSTD_CCtx* cctx;
-    ZSTD_DCtx* dctx;
-    ZSTD_inBuffer input;
-    ZSTD_outBuffer output;
+    php_zstd_context ctx;
     php_stream *stream;
 } php_zstd_stream_data;
 
@@ -776,9 +773,9 @@ static int php_zstd_decomp_close(php_stream *stream, int close_handle)
         }
     }
 
-    ZSTD_freeDCtx(self->dctx);
+    php_zstd_context_free(&self->ctx);
+
     efree(self->bufin);
-    efree(self->bufout);
     efree(self);
     stream->abstract = NULL;
 
@@ -794,14 +791,15 @@ static int php_zstd_comp_flush_or_end(php_zstd_stream_data *self, int end)
 
     /* Flush / End */
     do {
-        self->output.pos  = 0;
-        res = ZSTD_compressStream2(self->cctx, &self->output, &in,
+        self->ctx.output.pos  = 0;
+        res = ZSTD_compressStream2(self->ctx.cctx, &self->ctx.output, &in,
                                    end ? ZSTD_e_end : ZSTD_e_flush);
         if (ZSTD_isError(res)) {
             ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
             ret = EOF;
         }
-        php_stream_write(self->stream, self->output.dst, self->output.pos);
+        php_stream_write(self->stream,
+                         self->ctx.output.dst, self->ctx.output.pos);
     } while (res > 0);
 
     return ret;
@@ -833,8 +831,8 @@ static int php_zstd_comp_close(php_stream *stream, int close_handle)
         }
     }
 
-    ZSTD_freeCCtx(self->cctx);
-    efree(self->output.dst);
+    php_zstd_context_free(&self->ctx);
+
     efree(self);
     stream->abstract = NULL;
 
@@ -855,29 +853,29 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
     STREAM_DATA_FROM_STREAM();
 
     while (count > 0) {
-        x = self->output.size - self->output.pos;
+        x = self->ctx.output.size - self->ctx.output.pos;
         /* enough available */
         if (x >= count) {
-            memcpy(buf, self->bufout + self->output.pos, count);
-            self->output.pos += count;
+            memcpy(buf, self->bufout + self->ctx.output.pos, count);
+            self->ctx.output.pos += count;
             ret += count;
             return ret;
         }
         /* take remaining from out  */
         if (x) {
-            memcpy(buf, self->bufout + self->output.pos, x);
-            self->output.pos += x;
+            memcpy(buf, self->bufout + self->ctx.output.pos, x);
+            self->ctx.output.pos += x;
             ret += x;
             buf += x;
             count -= x;
         }
         /* decompress */
-        if (self->input.pos < self->input.size) {
+        if (self->ctx.input.pos < self->ctx.input.size) {
             /* for zstd */
-            self->output.pos = 0;
-            self->output.size = self->sizeout;
-            res = ZSTD_decompressStream(self->dctx,
-                                        &self->output, &self->input);
+            self->ctx.output.pos = 0;
+            self->ctx.output.size = self->sizeout;
+            res = ZSTD_decompressStream(self->ctx.dctx,
+                                        &self->ctx.output, &self->ctx.input);
             if (ZSTD_IS_ERROR(res)) {
                 ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
 #if PHP_VERSION_ID >= 70400
@@ -885,14 +883,14 @@ static ssize_t php_zstd_decomp_read(php_stream *stream, char *buf, size_t count)
 #endif
             }
             /* for us */
-            self->output.size = self->output.pos;
-            self->output.pos = 0;
+            self->ctx.output.size = self->ctx.output.pos;
+            self->ctx.output.pos = 0;
         }  else {
             /* read */
-            self->input.pos = 0;
-            self->input.size = php_stream_read(self->stream,
-                                               self->bufin, self->sizein);
-            if (!self->input.size) {
+            self->ctx.input.pos = 0;
+            self->ctx.input.size = php_stream_read(self->stream,
+                                                   self->bufin, self->sizein);
+            if (!self->ctx.input.size) {
                 /* EOF */
                 count = 0;
             }
@@ -915,8 +913,8 @@ php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
     ZSTD_inBuffer in = { buf, count, 0 };
 
     do {
-        self->output.pos = 0;
-        res = ZSTD_compressStream2(self->cctx, &self->output,
+        self->ctx.output.pos = 0;
+        res = ZSTD_compressStream2(self->ctx.cctx, &self->ctx.output,
                                    &in, ZSTD_e_continue);
         if (ZSTD_isError(res)) {
             ZSTD_WARNING("zstd: %s", ZSTD_getErrorName(res));
@@ -924,7 +922,8 @@ php_zstd_comp_write(php_stream *stream, const char *buf, size_t count)
             return -1;
 #endif
         }
-        php_stream_write(self->stream, self->output.dst, self->output.pos);
+        php_stream_write(self->stream,
+                         self->ctx.output.dst, self->ctx.output.pos);
 
     } while (res > 0);
 
@@ -971,8 +970,7 @@ php_stream_zstd_opener(
     php_zstd_stream_data *self;
     int level = ZSTD_CLEVEL_DEFAULT;
     int compress;
-    ZSTD_CDict *cdict = NULL;
-    ZSTD_DDict *ddict = NULL;
+    zend_string *dict = NULL;
 
     if (strncasecmp(STREAM_NAME, path, sizeof(STREAM_NAME)-1) == 0) {
         path += sizeof(STREAM_NAME)-1;
@@ -997,7 +995,6 @@ php_stream_zstd_opener(
 
     if (context) {
         zval *tmpzval;
-        zend_string *data;
 
         tmpzval = php_stream_context_get_option(context, "zstd", "level");
         if (NULL != tmpzval) {
@@ -1005,13 +1002,7 @@ php_stream_zstd_opener(
         }
         tmpzval = php_stream_context_get_option(context, "zstd", "dict");
         if (NULL != tmpzval) {
-            data = zval_get_string(tmpzval);
-            if (compress) {
-                cdict = ZSTD_createCDict(ZSTR_VAL(data), ZSTR_LEN(data), level);
-            } else {
-                ddict = ZSTD_createDDict(ZSTR_VAL(data), ZSTR_LEN(data));
-            }
-            zend_string_release(data);
+            dict = zval_get_string(tmpzval);
         }
     }
 
@@ -1026,48 +1017,54 @@ php_stream_zstd_opener(
                                            options | REPORT_ERRORS, NULL);
     if (!self->stream) {
         efree(self);
+        if (dict) {
+            zend_string_release(dict);
+        }
         return NULL;
     }
 
+    php_zstd_context_init(&self->ctx);
+
     /* File */
     if (compress) {
-        self->dctx = NULL;
-        self->cctx = ZSTD_createCCtx();
-        if (!self->cctx) {
+        if (php_zstd_context_create_compress(&self->ctx,
+                                             level, dict) != SUCCESS) {
             ZSTD_WARNING("zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
+            if (dict) {
+                zend_string_release(dict);
+            }
             return NULL;
         }
-        ZSTD_CCtx_reset(self->cctx, ZSTD_reset_session_only);
-        ZSTD_CCtx_refCDict(self->cctx, cdict);
-        ZSTD_CCtx_setParameter(self->cctx, ZSTD_c_compressionLevel, level);
 
-        self->output.size = ZSTD_CStreamOutSize();
-        self->output.dst  = emalloc(self->output.size);
-        self->output.pos  = 0;
+        if (dict) {
+            zend_string_release(dict);
+        }
 
         return php_stream_alloc(&php_stream_zstd_write_ops, self, NULL, mode);
 
     } else {
-        self->dctx = ZSTD_createDCtx();
-        if (!self->dctx) {
+        if (php_zstd_context_create_decompress(&self->ctx, dict) != SUCCESS) {
             ZSTD_WARNING("zstd: compression context failed");
             php_stream_close(self->stream);
             efree(self);
+            if (dict) {
+                zend_string_release(dict);
+            }
             return NULL;
         }
-        self->cctx = NULL;
         self->bufin = emalloc(self->sizein = ZSTD_DStreamInSize());
-        self->bufout = emalloc(self->sizeout = ZSTD_DStreamOutSize());
-        ZSTD_DCtx_reset(self->dctx, ZSTD_reset_session_only);
-        ZSTD_DCtx_refDDict(self->dctx, ddict);
-        self->input.src   = self->bufin;
-        self->input.pos   = 0;
-        self->input.size  = 0;
-        self->output.dst  = self->bufout;
-        self->output.pos  = 0;
-        self->output.size = 0;
+        self->bufout = self->ctx.output.dst;
+        self->sizeout = self->ctx.output.size;
+        self->ctx.input.src = self->bufin;
+        self->ctx.input.pos = 0;
+        self->ctx.input.size = 0;
+        self->ctx.output.size = 0;
+
+        if (dict) {
+            zend_string_release(dict);
+        }
 
         return php_stream_alloc(&php_stream_zstd_read_ops, self, NULL, mode);
     }
@@ -1246,20 +1243,11 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
         level = ZSTD_CLEVEL_DEFAULT;
     }
 
-    ctx->cctx = ZSTD_createCCtx();
-    if (!ctx->cctx) {
+    zend_string *dict = php_zstd_output_handler_load_dict(ctx);
+
+    if (php_zstd_context_create_compress(ctx, level, dict) != SUCCESS) {
         return FAILURE;
     }
-
-    php_zstd_output_handler_load_dict(ctx);
-
-    ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
-    ZSTD_CCtx_refCDict(ctx->cctx, ctx->cdict);
-    ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, level);
-
-    ctx->output.size = ZSTD_CStreamOutSize();
-    ctx->output.dst = emalloc(ctx->output.size);
-    ctx->output.pos = 0;
 
     return SUCCESS;
 }
