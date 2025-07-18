@@ -683,19 +683,10 @@ ZEND_FUNCTION(zstd_uncompress_init)
 {
     PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_uncompress_context_ce);
 
-    ctx->dctx = ZSTD_createDCtx();
-    if (ctx->dctx == NULL) {
+    if (php_zstd_context_create_decompress(ctx, NULL) != SUCCESS) {
         zval_ptr_dtor(return_value);
-        ZSTD_WARNING("failed to create uncompress context");
         RETURN_FALSE;
     }
-    ctx->cdict = NULL;
-
-    ZSTD_DCtx_reset(ctx->dctx, ZSTD_reset_session_only);
-
-    ctx->output.size = ZSTD_DStreamOutSize();
-    ctx->output.dst  = emalloc(ctx->output.size);
-    ctx->output.pos  = 0;
 }
 
 ZEND_FUNCTION(zstd_uncompress_add)
