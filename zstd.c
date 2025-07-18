@@ -621,20 +621,10 @@ ZEND_FUNCTION(zstd_compress_init)
 
     PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_compress_context_ce);
 
-    ctx->cctx = ZSTD_createCCtx();
-    if (ctx->cctx == NULL) {
+    if (php_zstd_context_create_compress(ctx, level, NULL) != SUCCESS) {
         zval_ptr_dtor(return_value);
-        ZSTD_WARNING("failed to create compress context");
         RETURN_FALSE;
     }
-    ctx->cdict = NULL;
-
-    ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
-    ZSTD_CCtx_setParameter(ctx->cctx, ZSTD_c_compressionLevel, level);
-
-    ctx->output.size = ZSTD_CStreamOutSize();
-    ctx->output.dst  = emalloc(ctx->output.size);
-    ctx->output.pos  = 0;
 }
 
 ZEND_FUNCTION(zstd_compress_add)
