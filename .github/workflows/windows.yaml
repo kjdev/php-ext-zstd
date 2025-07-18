@@ -12,6 +12,9 @@ env:
 
 jobs:
   ci:
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         php:
