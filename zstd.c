@@ -85,16 +85,21 @@ static php_zstd_context *php_zstd_context_from_obj(zend_object *obj)
 #define PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(ce) \
   object_init_ex(return_value, ce); \
   php_zstd_context *ctx = php_zstd_context_from_obj(Z_OBJ_P(return_value)); \
-  ctx->cctx = NULL; \
-  ctx->dctx = NULL; \
-  ctx->cdict = 0; \
-  ctx->ddict = 0; \
-  ctx->input.src = NULL; \
-  ctx->input.size = 0; \
-  ctx->input.pos = 0; \
-  ctx->output.dst = NULL; \
-  ctx->output.size = 0; \
-  ctx->output.pos = 0;
+  php_zstd_context_init(ctx);
+
+static void php_zstd_context_init(php_zstd_context *ctx)
+{
+    ctx->cctx = NULL;
+    ctx->dctx = NULL;
+    ctx->cdict = NULL;
+    ctx->ddict = NULL;
+    ctx->input.src = NULL;
+    ctx->input.size = 0;
+    ctx->input.pos = 0;
+    ctx->output.dst = NULL;
+    ctx->output.size = 0;
+    ctx->output.pos = 0;
+}
 
 static void php_zstd_context_free(php_zstd_context *ctx)
 {
