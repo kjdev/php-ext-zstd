@@ -630,8 +630,7 @@ ZEND_FUNCTION(zstd_compress_init)
 ZEND_FUNCTION(zstd_compress_add)
 {
     php_zstd_context *ctx;
-    char *in_buf;
-    size_t in_size;
+    zend_string *input;
     zend_bool end = 0;
     smart_string out = {0};
 #if PHP_VERSION_ID >= 80000
@@ -646,7 +645,7 @@ ZEND_FUNCTION(zstd_compress_add)
 #else
         Z_PARAM_OBJECT_OF_CLASS(obj, php_zstd_compress_context_ce)
 #endif
-        Z_PARAM_STRING(in_buf, in_size)
+        Z_PARAM_STR(input)
         Z_PARAM_OPTIONAL
         Z_PARAM_BOOL(end)
     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
@@ -661,7 +660,7 @@ ZEND_FUNCTION(zstd_compress_add)
         RETURN_FALSE;
     }
 
-    ZSTD_inBuffer in = { in_buf, in_size, 0 };
+    ZSTD_inBuffer in = { ZSTR_VAL(input), ZSTR_LEN(input), 0 };
     size_t res;
 
     do {
