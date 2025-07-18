@@ -69,6 +69,7 @@ struct _php_zstd_context {
     ZSTD_CCtx* cctx;
     ZSTD_DCtx* dctx;
     ZSTD_CDict *cdict;
+    ZSTD_DDict *ddict;
     ZSTD_inBuffer input;
     ZSTD_outBuffer output;
     zend_object std;
@@ -87,6 +88,7 @@ static php_zstd_context *php_zstd_context_from_obj(zend_object *obj)
   ctx->cctx = NULL; \
   ctx->dctx = NULL; \
   ctx->cdict = 0; \
+  ctx->ddict = 0; \
   ctx->input.src = NULL; \
   ctx->input.size = 0; \
   ctx->input.pos = 0; \
@@ -107,6 +109,10 @@ static void php_zstd_context_free(php_zstd_context *ctx)
     if (ctx->cdict) {
         ZSTD_freeCDict(ctx->cdict);
         ctx->cdict = NULL;
+    }
+    if (ctx->ddict) {
+        ZSTD_freeDDict(ctx->ddict);
+        ctx->ddict = NULL;
     }
     if (ctx->output.dst) {
         efree(ctx->output.dst);
