@@ -1204,18 +1204,17 @@ static int php_zstd_output_encoding(void)
     return PHP_ZSTD_G(compression_coding);
 }
 
-static void
-php_zstd_output_handler_load_dict(php_zstd_context *ctx, int level)
+static zend_string*
+php_zstd_output_handler_load_dict(php_zstd_context *ctx)
 {
     php_stream *stream = NULL;
     zval *zcontext = NULL;
     php_stream_context *context = NULL;
-    zend_string *contents = NULL;
     zend_long maxlen = (ssize_t) PHP_STREAM_COPY_ALL;
     char *dict = PHP_ZSTD_G(output_compression_dict);
 
     if (!dict || strlen(dict) <= 0) {
-        return;
+        return NULL;
     }
 
     context = php_stream_context_from_zval(zcontext, 0);
@@ -1224,7 +1223,7 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx, int level)
                                         NULL, context);
     if (!stream) {
         ZSTD_WARNING("could not open dictionary stream: %s", dict);
-        return;
+        return NULL;
     }
 
     if (php_stream_is(stream, PHP_STREAM_IS_STDIO)) {
@@ -1232,21 +1231,11 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx, int level)
                               PHP_STREAM_BUFFER_NONE, NULL);
     }
 
-    contents = php_stream_copy_to_mem(stream, maxlen, 0);
-
-    if (contents) {
-        ctx->cdict = ZSTD_createCDict(ZSTR_VAL(contents), ZSTR_LEN(contents),
-                                      level);
-        if (!ctx->cdict) {
-            ZSTD_WARNING("failed to create compression dictionary: %s", dict);
-        }
-
-        zend_string(contents);
-    } else {
-        ZSTD_WARNING("failed to get dictionary stream: %s", dict);
-    }
+    zend_string *data = php_stream_copy_to_mem(stream, maxlen, 0);
 
     php_stream_close(stream);
+
+    return data;
 }
 
 static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
@@ -1262,7 +1251,7 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
         return FAILURE;
     }
 
-    php_zstd_output_handler_load_dict(ctx, level);
+    php_zstd_output_handler_load_dict(ctx);
 
     ZSTD_CCtx_reset(ctx->cctx, ZSTD_reset_session_only);
     ZSTD_CCtx_refCDict(ctx->cctx, ctx->cdict);
