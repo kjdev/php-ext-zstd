@@ -30,7 +30,11 @@
 #include <php_ini.h>
 #include <ext/standard/file.h>
 #include <ext/standard/info.h>
+#if PHP_VERSION_ID < 70200
 #include <ext/standard/php_smart_string.h>
+#else
+#include "Zend/zend_smart_string.h"
+#endif
 #if defined(HAVE_APCU_SUPPORT)
 #include <ext/standard/php_var.h>
 #include <ext/apcu/apc_serializer.h>
