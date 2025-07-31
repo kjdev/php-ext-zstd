@@ -316,43 +316,89 @@ static php_zstd_context* php_zstd_output_handler_context_init(void)
 #define php_zstd_output_handler_context_free(ctx) php_zstd_context_free(ctx)
 
 /* One-shot functions */
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_compress, 0, 1, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, level, IS_LONG, 0, "ZSTD_COMPRESS_LEVEL_DEFAULT")
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, level)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_uncompress, 0, 1, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_compress_dict, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, dict, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, level, IS_LONG, 0, "ZSTD_COMPRESS_LEVEL_DEFAULT")
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
-    ZEND_ARG_INFO(0, dictBuffer)
+    ZEND_ARG_INFO(0, dict)
     ZEND_ARG_INFO(0, level)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_uncompress_dict, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, dict, IS_STRING, 0)
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_dict, 0, 0, 2)
     ZEND_ARG_INFO(0, data)
-    ZEND_ARG_INFO(0, dictBuffer)
+    ZEND_ARG_INFO(0, dict)
+#endif
 ZEND_END_ARG_INFO()
 
 /* Incremental functions */
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_zstd_compress_init, 0, 0, Zstd\\Compress\\Context, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, level, IS_LONG, 0, "ZSTD_COMPRESS_LEVEL_DEFAULT")
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_init, 0, 0, 0)
     ZEND_ARG_INFO(0, level)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_compress_add, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_OBJ_INFO(0, context, Zstd\\Compress\\Context, 0)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, end, _IS_BOOL, 0, "false")
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_add, 0, 0, 2)
     ZEND_ARG_INFO(0, context)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, end)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_zstd_uncompress_init, 0, 0, Zstd\\UnCompress\\Context, MAY_BE_FALSE)
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_init, 0, 0, 0)
+#endif
 ZEND_END_ARG_INFO()
 
+#if PHP_VERSION_ID >= 80000
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_uncompress_add, 0, 2, MAY_BE_STRING|MAY_BE_FALSE)
+    ZEND_ARG_OBJ_INFO(0, context, Zstd\\UnCompress\\Context, 0)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+#else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_add, 0, 0, 2)
     ZEND_ARG_INFO(0, context)
     ZEND_ARG_INFO(0, data)
+#endif
 ZEND_END_ARG_INFO()
 
 #if PHP_VERSION_ID >= 80000
