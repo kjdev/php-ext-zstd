@@ -7,13 +7,14 @@ if (PHP_VERSION_ID < 80000) die("skip requires PHP 8.0+");
 --FILE--
 <?php
 include(dirname(__FILE__) . '/data.inc');
+$dictionary = file_get_contents(dirname(__FILE__) . '/data.dic');
 
-function test($data, $level = 0) {
-    echo "level={$level}\n";
+function test($data, $dict, $level = 0) {
+    echo "level={$level},dict=", gettype($dict), "\n";
 
     $compressed = '';
 
-    $context = zstd_compress_init(level: $level);
+    $context = zstd_compress_init(level: $level, dict: $dict);
     if ($context === false) {
         echo "ERROR\n";
         return;
@@ -31,14 +32,14 @@ function test($data, $level = 0) {
         end: true,
     );
 
-    if ($data === zstd_uncompress(data: $compressed)) {
+    if ($data === zstd_uncompress(data: $compressed, dict: $dict)) {
         echo "OK\n";
     } else {
         echo "ERROR: uncompress\n";
     }
 
     $out = '';
-    $context = zstd_uncompress_init();
+    $context = zstd_uncompress_init(dict: $dict);
     foreach (str_split($compressed, 6) as $var) {
         $out .= zstd_uncompress_add(
             context: $context,
@@ -53,25 +54,42 @@ function test($data, $level = 0) {
 }
 
 foreach ([0, 9, 22, 30, -1] as $level) {
-    test($data, $level, 0);
+    test($data, null, $level);
+    test($data, $dictionary, $level);
 }
 ?>
 ===DONE===
 --EXPECTF--
-level=0
+level=0,dict=NULL
 OK
 Ok
-level=9
+level=0,dict=string
 OK
 Ok
-level=22
+level=9,dict=NULL
 OK
 Ok
-level=30
+level=9,dict=string
+OK
+Ok
+level=22,dict=NULL
+OK
+Ok
+level=22,dict=string
+OK
+Ok
+level=30,dict=NULL
 
 Warning: zstd_compress_init(): compression level (30) must be within 1..22 or smaller then 0 in %s on line %d
 ERROR
-level=-1
+level=30,dict=string
+
+Warning: zstd_compress_init(): compression level (30) must be within 1..22 or smaller then 0 in %s on line %d
+ERROR
+level=-1,dict=NULL
+OK
+Ok
+level=-1,dict=string
 OK
 Ok
 ===DONE===
