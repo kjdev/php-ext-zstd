@@ -318,19 +318,23 @@ static php_zstd_context* php_zstd_output_handler_context_init(void)
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_compress, 0, 1, MAY_BE_STRING|MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, level, IS_LONG, 0, "ZSTD_COMPRESS_LEVEL_DEFAULT")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dict, IS_STRING, 1, "null")
 #else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
     ZEND_ARG_INFO(0, level)
+    ZEND_ARG_INFO(0, dict)
 #endif
 ZEND_END_ARG_INFO()
 
 #if PHP_VERSION_ID >= 80000
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_zstd_uncompress, 0, 1, MAY_BE_STRING|MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dict, IS_STRING, 1, "null")
 #else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress, 0, 0, 1)
     ZEND_ARG_INFO(0, data)
+    ZEND_ARG_INFO(0, dict)
 #endif
 ZEND_END_ARG_INFO()
 
@@ -362,9 +366,11 @@ ZEND_END_ARG_INFO()
 #if PHP_VERSION_ID >= 80000
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_zstd_compress_init, 0, 0, Zstd\\Compress\\Context, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, level, IS_LONG, 0, "ZSTD_COMPRESS_LEVEL_DEFAULT")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dict, IS_STRING, 1, "null")
 #else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_compress_init, 0, 0, 0)
     ZEND_ARG_INFO(0, level)
+    ZEND_ARG_INFO(0, dict)
 #endif
 ZEND_END_ARG_INFO()
 
@@ -383,8 +389,10 @@ ZEND_END_ARG_INFO()
 
 #if PHP_VERSION_ID >= 80000
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_zstd_uncompress_init, 0, 0, Zstd\\UnCompress\\Context, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dict, IS_STRING, 1, "null")
 #else
 ZEND_BEGIN_ARG_INFO_EX(arginfo_zstd_uncompress_init, 0, 0, 0)
+    ZEND_ARG_INFO(0, dict)
 #endif
 ZEND_END_ARG_INFO()
 
@@ -415,6 +423,10 @@ ZEND_END_ARG_INFO()
 ZEND_DECLARE_MODULE_GLOBALS(zstd);
 #endif
 
+#ifndef Z_PARAM_STR_OR_NULL
+#define Z_PARAM_STR_OR_NULL(dest) Z_PARAM_STR_EX(dest, 1, 0)
+#endif
+
 static size_t zstd_check_compress_level(zend_long level)
 {
     uint16_t maxLevel = (uint16_t) ZSTD_maxCLevel();
@@ -433,13 +445,14 @@ ZEND_FUNCTION(zstd_compress)
     size_t result;
     smart_string out = { 0 };
     zend_long level = ZSTD_CLEVEL_DEFAULT;
-    zend_string *input;
+    zend_string *input, *dict = NULL;
     php_zstd_context ctx;
 
-    ZEND_PARSE_PARAMETERS_START(1, 2)
+    ZEND_PARSE_PARAMETERS_START(1, 3)
         Z_PARAM_STR(input)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
+        Z_PARAM_STR_OR_NULL(dict)
     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     if (!zstd_check_compress_level(level)) {
@@ -447,7 +460,7 @@ ZEND_FUNCTION(zstd_compress)
     }
 
     php_zstd_context_init(&ctx);
-    if (php_zstd_context_create_compress(&ctx, level, NULL) != SUCCESS) {
+    if (php_zstd_context_create_compress(&ctx, level, dict) != SUCCESS) {
         php_zstd_context_free(&ctx);
         RETURN_FALSE;
     }
@@ -480,11 +493,13 @@ ZEND_FUNCTION(zstd_uncompress)
     size_t chunk, result;
     uint64_t size;
     smart_string out = { 0 };
-    zend_string *input;
+    zend_string *input, *dict = NULL;
     php_zstd_context ctx;
 
-    ZEND_PARSE_PARAMETERS_START(1, 1)
+    ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STR(input)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STR_OR_NULL(dict)
     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     size = ZSTD_getFrameContentSize(ZSTR_VAL(input), ZSTR_LEN(input));
@@ -496,7 +511,7 @@ ZEND_FUNCTION(zstd_uncompress)
     }
 
     php_zstd_context_init(&ctx);
-    if (php_zstd_context_create_decompress(&ctx, NULL) != SUCCESS) {
+    if (php_zstd_context_create_decompress(&ctx, dict) != SUCCESS) {
         php_zstd_context_free(&ctx);
         RETURN_FALSE;
     }
@@ -547,6 +562,8 @@ ZEND_FUNCTION(zstd_compress_dict)
     zend_string *input, *dict;
     php_zstd_context ctx;
 
+    // php_error_docref(NULL, E_DEPRECATED, "Use zstd_compress() instead");
+
     ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_STR(input)
         Z_PARAM_STR(dict)
@@ -594,6 +611,8 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     smart_string out = { 0 };
     zend_string *input, *dict;
     php_zstd_context ctx;
+
+    // php_error_docref(NULL, E_DEPRECATED, "Use zstd_uncompress() instead");
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STR(input)
@@ -657,10 +676,12 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 ZEND_FUNCTION(zstd_compress_init)
 {
     zend_long level = ZSTD_CLEVEL_DEFAULT;
+    zend_string *dict = NULL;
 
-    ZEND_PARSE_PARAMETERS_START(0, 1)
+    ZEND_PARSE_PARAMETERS_START(0, 2)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(level)
+        Z_PARAM_STR_OR_NULL(dict)
     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
     if (!zstd_check_compress_level(level)) {
@@ -669,7 +690,7 @@ ZEND_FUNCTION(zstd_compress_init)
 
     PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_compress_context_ce);
 
-    if (php_zstd_context_create_compress(ctx, level, NULL) != SUCCESS) {
+    if (php_zstd_context_create_compress(ctx, level, dict) != SUCCESS) {
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
@@ -729,9 +750,16 @@ ZEND_FUNCTION(zstd_compress_add)
 
 ZEND_FUNCTION(zstd_uncompress_init)
 {
+    zend_string *dict = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STR_OR_NULL(dict)
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
     PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(php_zstd_uncompress_context_ce);
 
-    if (php_zstd_context_create_decompress(ctx, NULL) != SUCCESS) {
+    if (php_zstd_context_create_decompress(ctx, dict) != SUCCESS) {
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
