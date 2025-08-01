@@ -67,7 +67,7 @@ extension=zstd.so
 Name                            | Default | Changeable
 ------------------------------- | ------- | ----------
 zstd.output\_compression        | 0       | PHP\_INI\_ALL
-zstd.output\_compression\_level | -1      | PHP\_INI\_ALL
+zstd.output\_compression\_level | 3       | PHP\_INI\_ALL
 zstd.output\_compression\_dict  | ""      | PHP\_INI\_ALL
 
 * zstd.output\_compression _boolean_/_integer_
@@ -82,8 +82,8 @@ zstd.output\_compression\_dict  | ""      | PHP\_INI\_ALL
 * zstd.output\_compression\_level _integer_
 
     Compression level used for transparent output compression.
-    Specify a value between 0 to 22.
-    The default value of -1 uses internally defined values (3).
+    Specify a value between 1 to 22.
+    The default value of `ZSTD_COMPRESS_LEVEL_DEFAULT` (3).
 
 * zstd.output\_compression\_dict _string_
 
@@ -97,8 +97,8 @@ Name                           | Description
 ZSTD\_COMPRESS\_LEVEL\_MIN     | Minimal compress level value
 ZSTD\_COMPRESS\_LEVEL\_MAX     | Maximal compress level value
 ZSTD\_COMPRESS\_LEVEL\_DEFAULT | Default compress level value
-LIBZSTD\_VERSION\_NUMBER       | libzstd version number
-LIBZSTD\_VERSION\_STRING       | libzstd version string
+ZSTD\_VERSION\_NUMBER          | libzstd version number
+ZSTD\_VERSION\_TEXT            | libzstd version string
 
 ## Function
 
@@ -111,12 +111,14 @@ LIBZSTD\_VERSION\_STRING       | libzstd version string
 * zstd\_uncompress\_init — Initialize an incremental uncompress context
 * zstd\_uncompress\_add — Incrementally uncompress data
 
-
+---
 ### zstd\_compress — Zstandard compression
 
 #### Description
 
-string **zstd\_compress** ( string _$data_ [, int _$level_ = 3 ] )
+``` php
+zstd_compress ( string $data, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): string|false
+```
 
 Zstandard compression.
 
@@ -128,8 +130,8 @@ Zstandard compression.
 
 * _level_
 
-  The level of compression (1-22).
-  (Defaults to 3)
+  The level of compression (e.g. 1-22).
+  (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
 
   A value smaller than 0 means a faster compression level.
   (Zstandard library 1.3.4 or later)
@@ -138,12 +140,14 @@ Zstandard compression.
 
 Returns the compressed data or FALSE if an error occurred.
 
-
+---
 ### zstd\_uncompress — Zstandard decompression
 
 #### Description
 
-string **zstd\_uncompress** ( string _$data_ )
+``` php
+zstd_uncompress ( string $data ): string|false
+```
 
 Zstandard decompression.
 
@@ -159,12 +163,14 @@ Zstandard decompression.
 
 Returns the decompressed data or FALSE if an error occurred.
 
-
+---
 ### zstd\_compress\_dict — Zstandard compression using a digested dictionary
 
 #### Description
 
-string **zstd\_compress\_dict** ( string _$data_ , string _$dict_ [, int _$level_ = 3 ])
+``` php
+zstd_compress_dict ( string $data , string $dict, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): string|false
+```
 
 Zstandard compression using a digested dictionary.
 
@@ -182,19 +188,21 @@ Zstandard compression using a digested dictionary.
 
 * _level_
 
-  The level of compression (1-22).
-  (Defaults to 3)
+  The level of compression (e.g. 1-22).
+  (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
 
 #### Return Values
 
 Returns the compressed data or FALSE if an error occurred.
 
-
+---
 ### zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
 
 #### Description
 
-string **zstd\_uncompress\_dict** ( string _$data_ , string _$dict_ )
+``` php
+zstd_uncompress_dict ( string $data , string $dict ): string|false
+```
 
 Zstandard decompression using a digested dictionary.
 
@@ -215,12 +223,14 @@ Zstandard decompression using a digested dictionary.
 
 Returns the decompressed data or FALSE if an error occurred.
 
-
+---
 ### zstd\_compress\_init — Initialize an incremental compress context
 
 #### Description
 
-Zstd\\Compress\\Context **zstd\_compress\_init** ( [ int _$level_ = ZSTD_COMPRESS_LEVEL_DEFAULT ] )
+``` php
+zstd_compress_init ( int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): Zstd\Compress\Context|false
+```
 
 Initialize an incremental compress context
 
@@ -228,18 +238,21 @@ Initialize an incremental compress context
 
 * _level_
 
-  The higher the level, the slower the compression. (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
+  The higher the level, the slower the compression.
+  (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
 
 #### Return Values
 
 Returns a zstd context instance on success, or FALSE on failure
 
-
+---
 ### zstd\_compress\_add — Incrementally compress data
 
 #### Description
 
-string **zstd\_compress\_add** ( Zstd\\Compress\\Context _$context_, string _$data_ [, bool _$end_ = false ] )
+``` php
+zstd_compress_add ( Zstd\Compress\Context $context, string $data, bool $end = false ): string|false
+```
 
 Incrementally compress data
 
@@ -261,12 +274,14 @@ Incrementally compress data
 
 Returns a chunk of compressed data, or FALSE on failure.
 
-
+---
 ### zstd\_uncompress\_init — Initialize an incremental uncompress context
 
 #### Description
 
-Zstd\\UnCompress\\Context **zstd\_uncompress\_init** ( void )
+``` php
+zstd_uncompress_init ( void ): Zstd\UnCompress\Context|false
+```
 
 Initialize an incremental uncompress context
 
@@ -274,12 +289,14 @@ Initialize an incremental uncompress context
 
 Returns a zstd context instance on success, or FALSE on failure
 
-
+---
 ### zstd\_uncompress\_add — Incrementally uncompress data
 
 #### Description
 
-string **zstd\_uncompress\_add** ( Zstd\\UnCompress\\Context _$context_, string _$data_ )
+``` php
+zstd_uncompress_add ( Zstd\UnCompress\Context $context, string $data ): string|false
+```
 
 Incrementally uncompress data
 
@@ -300,18 +317,17 @@ Returns a chunk of uncompressed data, or FALSE on failure.
 
 ## Namespace
 
-```
+``` php
 Namespace Zstd;
 
-function compress( $data [, $level = 3 ] )
-function uncompress( $data )
-function compress_dict ( $data, $dict )
-function uncompress_dict ( $data, $dict )
-function compress_init ( [ $level = 3 ] )
-function compress_add ( $context, $data [, $end = false ] )
-function uncompress_init ()
-function uncompress_add ( $context, $data )
-
+function compress( string $data, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): string|false {}
+function uncompress( string $data ): string|false {}
+function compress_dict ( string $data, string $dict, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): string|false {}
+function uncompress_dict ( string $data, string $dict ): string|false {}
+function compress_init ( int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): \Zstd\Compress\Context|false {}
+function compress_add ( \Zstd\Compress\Context $context, string $data, bool $end = false ): string|false {}
+function uncompress_init (): \Zstd\UnCompress\Context|false {}
+function uncompress_add ( \Zstd\UnCompress\Context $context, string $data ): string|false
 ```
 
 `zstd_compress`, `zstd_uncompress`, `zstd_compress_dict`,
