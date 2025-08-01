@@ -33,7 +33,7 @@ try {
 ===DONE===
 --EXPECTF--
 *** Testing zstd_uncompress() function with Zero arguments ***
-ArgumentCountError: zstd_uncompress() expects exactly 1 argument, 0 given in %s:%d
+ArgumentCountError: zstd_uncompress() expects at least 1 argument, 0 given in %s:%d
 Stack trace:
 #0 %s(%d): zstd_uncompress()
 #1 {main}

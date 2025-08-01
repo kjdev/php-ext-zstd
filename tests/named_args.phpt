@@ -70,7 +70,7 @@ zstd_compress(): Argument #1 ($data) not passed
 string(6) "string"
 bool(true)
 ** zstd_uncompress(): false **
-zstd_uncompress() expects exactly 1 argument, 0 given
+zstd_uncompress() expects at least 1 argument, 0 given
 ** zstd_uncompress(data:) **
 string(6) "string"
 bool(true)

@@ -22,7 +22,7 @@ var_dump(zstd_uncompress($testclass));
 --EXPECTF--
 *** Testing zstd_uncompress() function with Zero arguments ***
 
-Warning: zstd_uncompress() expects exactly 1 parameter, 0 given in %s on line %d
+Warning: zstd_uncompress() expects at least 1 parameter, 0 given in %s on line %d
 bool(false)
 *** Testing with incorrect arguments ***
 
