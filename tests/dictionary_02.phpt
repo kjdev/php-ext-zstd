@@ -2,7 +2,7 @@
 zstd_uncompress_dict(): streaming decompression with dictionary
 --SKIPIF--
 <?php
-if (LIBZSTD_VERSION_NUMBER < 10304) die("skip needs libzstd 1.3.4");
+if (ZSTD_VERSION_NUMBER < 10304) die("skip needs libzstd 1.3.4");
 ?>
 --FILE--
 <?php
