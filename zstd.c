@@ -57,8 +57,6 @@
 #define ZSTD_CLEVEL_DEFAULT 3
 #endif
 
-#define DEFAULT_COMPRESS_LEVEL 3
-
 // zend_string_efree doesnt exist in PHP7.2, 20180731 is PHP 7.3
 #if ZEND_MODULE_API_NO < 20180731
 #define zend_string_efree(string) zend_string_free(string)
@@ -434,7 +432,7 @@ ZEND_FUNCTION(zstd_compress)
 {
     size_t result;
     smart_string out = { 0 };
-    zend_long level = DEFAULT_COMPRESS_LEVEL;
+    zend_long level = ZSTD_CLEVEL_DEFAULT;
     zend_string *input;
     php_zstd_context ctx;
 
@@ -545,7 +543,7 @@ ZEND_FUNCTION(zstd_compress_dict)
 {
     size_t result;
     smart_string out = { 0 };
-    zend_long level = DEFAULT_COMPRESS_LEVEL;
+    zend_long level = ZSTD_CLEVEL_DEFAULT;
     zend_string *input, *dict;
     php_zstd_context ctx;
 
@@ -658,7 +656,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 
 ZEND_FUNCTION(zstd_compress_init)
 {
-    zend_long level = DEFAULT_COMPRESS_LEVEL;
+    zend_long level = ZSTD_CLEVEL_DEFAULT;
 
     ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
@@ -1161,7 +1159,7 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
     *buf = emalloc(size + 1);
 
     *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
-                             DEFAULT_COMPRESS_LEVEL);
+                             ZSTD_CLEVEL_DEFAULT);
     if (ZSTD_isError(*buf_len) || *buf_len == 0) {
         efree(*buf);
         *buf = NULL;
@@ -1630,7 +1628,7 @@ ZEND_MINIT_FUNCTION(zstd)
                            ZSTD_maxCLevel(),
                            CONST_CS | CONST_PERSISTENT);
     REGISTER_LONG_CONSTANT("ZSTD_COMPRESS_LEVEL_DEFAULT",
-                           DEFAULT_COMPRESS_LEVEL,
+                           ZSTD_CLEVEL_DEFAULT,
                            CONST_CS | CONST_PERSISTENT);
 
     REGISTER_LONG_CONSTANT("LIBZSTD_VERSION_NUMBER",
