@@ -117,7 +117,7 @@ ZSTD\_VERSION\_TEXT            | libzstd version string
 #### Description
 
 ``` php
-zstd_compress ( string $data, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): string|false
+zstd_compress ( string $data, int $level = ZSTD_COMPRESS_LEVEL_DEFAULT, ?string $dict = null ): string|false
 ```
 
 Zstandard compression.
@@ -136,6 +136,10 @@ Zstandard compression.
   A value smaller than 0 means a faster compression level.
   (Zstandard library 1.3.4 or later)
 
+* _dict_
+
+  The Dictionary data.
+
 #### Return Values
 
 Returns the compressed data or FALSE if an error occurred.
@@ -146,7 +150,7 @@ Returns the compressed data or FALSE if an error occurred.
 #### Description
 
 ``` php
-zstd_uncompress ( string $data ): string|false
+zstd_uncompress ( string $data, ?string $dict = null ): string|false
 ```
 
 Zstandard decompression.
@@ -159,12 +163,18 @@ Zstandard decompression.
 
   The compressed string.
 
+* _dict_
+
+  The Dictionary data.
+
 #### Return Values
 
 Returns the decompressed data or FALSE if an error occurred.
 
 ---
 ### zstd\_compress\_dict — Zstandard compression using a digested dictionary
+
+> deprecated: use zstd\_compress() insted
 
 #### Description
 
@@ -198,6 +208,8 @@ Returns the compressed data or FALSE if an error occurred.
 ---
 ### zstd\_uncompress\_dict — Zstandard decompression using a digested dictionary
 
+> deprecated: use zstd\_uncompress() insted
+
 #### Description
 
 ``` php
@@ -229,7 +241,7 @@ Returns the decompressed data or FALSE if an error occurred.
 #### Description
 
 ``` php
-zstd_compress_init ( int $level = ZSTD_COMPRESS_LEVEL_DEFAULT ): Zstd\Compress\Context|false
+zstd_compress_init ( int $level = ZSTD_COMPRESS_LEVEL_DEFAULT, ?string $dict = null ): Zstd\Compress\Context|false
 ```
 
 Initialize an incremental compress context
@@ -240,6 +252,10 @@ Initialize an incremental compress context
 
   The higher the level, the slower the compression.
   (Defaults to `ZSTD_COMPRESS_LEVEL_DEFAULT`)
+
+* _dict_
+
+  The Dictionary data.
 
 #### Return Values
 
@@ -280,10 +296,16 @@ Returns a chunk of compressed data, or FALSE on failure.
 #### Description
 
 ``` php
-zstd_uncompress_init ( void ): Zstd\UnCompress\Context|false
+zstd_uncompress_init ( ?string $dict = null ): Zstd\UnCompress\Context|false
 ```
 
 Initialize an incremental uncompress context
+
+#### Parameters
+
+* _dict_
+
+  The Dictionary data.
 
 #### Return Values
 
@@ -370,6 +392,7 @@ readfile("compress.zstd:///path/to/data.zstd");
 $context = stream_context_create([
     'zstd' => [
             'level' => ZSTD_COMPRESS_LEVEL_MIN,
+            // 'dict' => $dict,
         ],
     ],
 );
