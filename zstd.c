@@ -1287,7 +1287,7 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
 {
     int level = PHP_ZSTD_G(output_compression_level);
 
-    if (!zstd_check_compress_level(level) || level < 0) {
+    if (!zstd_check_compress_level(level) || level == 0) {
         level = ZSTD_CLEVEL_DEFAULT;
     }
 
@@ -1605,12 +1605,16 @@ static PHP_INI_MH(OnUpdate_zstd_output_compression)
     return SUCCESS;
 }
 
+#define STRINGIFY(n) #n
+#define TOSTRING(n) STRINGIFY(n)
+
 PHP_INI_BEGIN()
   STD_PHP_INI_BOOLEAN("zstd.output_compression", "0",
                       PHP_INI_ALL, OnUpdate_zstd_output_compression,
                       output_compression_default,
                       zend_zstd_globals, zstd_globals)
-  STD_PHP_INI_ENTRY("zstd.output_compression_level", "-1",
+  STD_PHP_INI_ENTRY("zstd.output_compression_level",
+                    TOSTRING(ZSTD_CLEVEL_DEFAULT),
                     PHP_INI_ALL, OnUpdateLong, output_compression_level,
                     zend_zstd_globals, zstd_globals)
   STD_PHP_INI_ENTRY("zstd.output_compression_dict", "",
