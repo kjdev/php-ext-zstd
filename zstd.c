@@ -28,6 +28,9 @@
 #include <php.h>
 #include <SAPI.h>
 #include <php_ini.h>
+#include <ext/hash/php_hash.h>
+#include <ext/hash/php_hash_sha.h>
+#include <ext/standard/base64.h>
 #include <ext/standard/file.h>
 #include <ext/standard/info.h>
 #if PHP_VERSION_ID < 70200
@@ -80,6 +83,7 @@ struct _php_zstd_context {
     ZSTD_DDict *ddict;
     ZSTD_inBuffer input;
     ZSTD_outBuffer output;
+    zend_uchar dict_digest[32];
     zend_object std;
 };
 
@@ -107,6 +111,7 @@ static void php_zstd_context_init(php_zstd_context *ctx)
     ctx->output.dst = NULL;
     ctx->output.size = 0;
     ctx->output.pos = 0;
+    memset(ctx->dict_digest, 0, sizeof(ctx->dict_digest));
 }
 
 static void php_zstd_context_free(php_zstd_context *ctx)
@@ -1253,6 +1258,9 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
 #if PHP_VERSION_ID >= 80000
 #define PHP_ZSTD_OUTPUT_HANDLER_NAME "zstd output compression"
 
+#define PHP_ZSTD_ENCODING_ZSTD (1 << 0)
+#define PHP_ZSTD_ENCODING_DCZ (1 << 1)
+
 static int php_zstd_output_encoding(void)
 {
     zval *enc;
@@ -1270,7 +1278,10 @@ static int php_zstd_output_encoding(void)
                     sizeof("HTTP_ACCEPT_ENCODING") - 1))) {
             convert_to_string(enc);
             if (strstr(Z_STRVAL_P(enc), "zstd")) {
-                PHP_ZSTD_G(compression_coding) = 1;
+                PHP_ZSTD_G(compression_coding) = PHP_ZSTD_ENCODING_ZSTD;
+            }
+            if (strstr(Z_STRVAL_P(enc), "dcz")) {
+                PHP_ZSTD_G(compression_coding) |= PHP_ZSTD_ENCODING_DCZ;
             }
         }
     }
@@ -1307,6 +1318,50 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
     zend_string *data = php_stream_copy_to_mem(stream, maxlen, 0);
 
     php_stream_close(stream);
+
+    if (!data) {
+        return NULL;
+    }
+
+    if (PHP_ZSTD_G(compression_coding) & PHP_ZSTD_ENCODING_DCZ) {
+        zval *available;
+        if ((Z_TYPE(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY
+             || zend_is_auto_global_str(ZEND_STRL("_SERVER")))
+            && (available = zend_hash_str_find(
+                    Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER]),
+                    "HTTP_AVAILABLE_DICTIONARY",
+                    sizeof("HTTP_AVAILABLE_DICTIONARY") - 1))) {
+            convert_to_string(available);
+
+            PHP_SHA256_CTX context;
+            PHP_SHA256Init(&context);
+            PHP_SHA256Update(&context, ZSTR_VAL(data), ZSTR_LEN(data));
+            PHP_SHA256Final(ctx->dict_digest, &context);
+
+            zend_string *b64;
+            b64 = php_base64_encode(ctx->dict_digest, sizeof(ctx->dict_digest));
+            if (b64) {
+                if (Z_STRLEN_P(available) <= ZSTR_LEN(b64)
+                    || memcmp(ZSTR_VAL(b64),
+                              Z_STRVAL_P(available) + 1, ZSTR_LEN(b64))) {
+                    php_error_docref(NULL, E_WARNING,
+                                     "zstd: invalid available-dictionary: "
+                                     "request(%s) != actual(%s)",
+                                     Z_STRVAL_P(available), ZSTR_VAL(b64));
+                    PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
+                    zend_string_release(data);
+                    data = NULL;
+                }
+                zend_string_free(b64);
+            }
+        } else {
+            php_error_docref(NULL, E_WARNING,
+                             "zstd: not found available-dictionary");
+            PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
+            zend_string_release(data);
+            data = NULL;
+        }
+    }
 
     return data;
 }
@@ -1347,9 +1402,19 @@ php_zstd_output_handler_write(php_zstd_context *ctx,
     if (output_context->out.size < ctx->output.size) {
         output_context->out.size = ctx->output.size;
     }
-    output_context->out.data = emalloc(output_context->out.size);
+
+    if ((output_context->op & PHP_OUTPUT_HANDLER_START)
+        && (PHP_ZSTD_G(compression_coding) & PHP_ZSTD_ENCODING_DCZ)) {
+        output_context->out.size += 40;
+        output_context->out.data = emalloc(output_context->out.size);
+        memcpy(output_context->out.data, "\x5e\x2a\x4d\x18\x20\x00\x00\x00", 8);
+        memcpy(output_context->out.data + 8, ctx->dict_digest, 32);
+        output_context->out.used = 40;
+    } else {
+        output_context->out.data = emalloc(output_context->out.size);
+        output_context->out.used = 0;
+    }
     output_context->out.free = 1;
-    output_context->out.used = 0;
 
     do {
         ctx->output.pos = 0;
@@ -1430,7 +1495,13 @@ php_zstd_output_handler(void **handler_context,
             &&  (output_context->op != (PHP_OUTPUT_HANDLER_START
                                         |PHP_OUTPUT_HANDLER_CLEAN
                                         |PHP_OUTPUT_HANDLER_FINAL))) {
-            sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+            if (PHP_ZSTD_G(compression_coding) & PHP_ZSTD_ENCODING_DCZ) {
+                sapi_add_header_ex(
+                    ZEND_STRL("Vary: Accept-Encoding, Available-Dictionary"),
+                    1, 0);
+            } else {
+                sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+            }
         }
         return FAILURE;
     }
@@ -1449,8 +1520,18 @@ php_zstd_output_handler(void **handler_context,
                 if (SG(headers_sent) || !PHP_ZSTD_G(output_compression)) {
                     return FAILURE;
                 }
-                sapi_add_header_ex(ZEND_STRL("Content-Encoding: zstd"), 1, 1);
-                sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0);
+                if (PHP_ZSTD_G(compression_coding) & PHP_ZSTD_ENCODING_DCZ) {
+                    sapi_add_header_ex(ZEND_STRL("Content-Encoding: dcz"),
+                                       1, 1);
+                    sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding, "
+                                                 "Available-Dictionary"),
+                                       1, 0);
+                } else {
+                    sapi_add_header_ex(ZEND_STRL("Content-Encoding: zstd"),
+                                       1, 1);
+                    sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"),
+                                       1, 0);
+                }
                 php_output_handler_hook(PHP_OUTPUT_HANDLER_HOOK_IMMUTABLE,
                                         NULL);
             }
