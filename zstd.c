@@ -1320,12 +1320,11 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
     }
 
     zend_string *dict = php_zstd_output_handler_load_dict(ctx);
-
-    if (php_zstd_context_create_compress(ctx, level, dict) != SUCCESS) {
+    if (!PHP_ZSTD_G(compression_coding)) {
         return FAILURE;
     }
 
-    return SUCCESS;
+    return php_zstd_context_create_compress(ctx, level, dict);
 }
 
 static void php_zstd_output_handler_context_dtor(void *opaq)
