@@ -1,2 +1,4 @@
 *.inc  -text
 *.phpt -text
+*.zstd binary
+*.dic  binary
