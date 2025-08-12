@@ -373,6 +373,12 @@ echo ...;
 
 > "Accept-Encoding: zstd" must be specified.
 
+> Experimental: [Compression Dictionary Transport](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Compression_dictionary_transport) support
+>
+> must be specified headers.
+> - `Accept-Encoding: dcz`
+> - `Available-Dictionary: :<base64-hash>:`
+
 ## Examples
 
 ```php
