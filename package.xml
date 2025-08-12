@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2024-11-05</date>
+ <date>2025-08-12</date>
  <version>
-  <release>0.14.0</release>
-  <api>0.14.0</api>
+  <release>0.15.0</release>
+  <api>0.15.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,9 +21,21 @@
  </stability>
  <license>MIT</license>
  <notes>
-- feat: output handler (PHP 8.0+)
-- feat: minimum system libzstd library version to 1.4.0
-- update: built-in zstd library to 1.5.6
+- feat: Incremental Compression: Added zstd_(un)compress_init() and zstd_(un)compress_add() functions for streaming compression
+- feat: ZstdContext Classes: Introduced Zstd\Compress\Context and Zstd\Uncompress\Context classes for object-oriented streaming
+- feat: Dictionary Support: Added dictionary parameter to compress and uncompress functions
+- feat: Named Arguments: Support for PHP 8.0+ named arguments
+- update: Zstd Library: Updated to zstd 1.5.7
+- update: Constants Unification: Renamed constants for consistency:
+  - LIBZSTD_VERSION_NUMBER → ZSTD_VERSION_NUMBER
+  - LIBZSTD_VERSION_STRING → ZSTD_VERSION_STRING
+  - Default compression level now uses ZSTD_CLEVEL_DEFAULT
+- experimental: DCZ Support: Experimental compression dictionary transport support in output handler
+- improve: Refactored internal compression/decompression to use stream-based approach with php_zstd_context{}
+- improve: Enhanced output handler with dictionary support
+- improve: Error handling and memory management
+- fix: streaming compressed data with zstd_uncompress_dict()
+- fix: improved output handler context initialization
  </notes>
  <contents>
   <dir name="/">
@@ -94,6 +106,8 @@
       <file name="zstd_ldm_geartab.h" role="src" />
       <file name="zstd_opt.c" role="src" />
       <file name="zstd_opt.h" role="src" />
+      <file name="zstd_preSplit.c" role="src" />
+      <file name="zstd_preSplit.h" role="src" />
       <file name="zstdmt_compress.c" role="src" />
       <file name="zstdmt_compress.h" role="src" />
      </dir>
@@ -119,7 +133,6 @@
     <file name="005_b.phpt" role="test" />
     <file name="006.phpt" role="test" />
     <file name="007.phpt" role="test" />
-    <file name="008.phpt" role="test" />
     <file name="009.phpt" role="test" />
     <file name="010.phpt" role="test" />
     <file name="011.phpt" role="test" />
@@ -129,7 +142,18 @@
     <file name="data.inc" role="test" />
     <file name="dictionary.phpt" role="test" />
     <file name="dictionary_01.phpt" role="test" />
+    <file name="dictionary_01_b.phpt" role="test" />
+    <file name="dictionary_02.phpt" role="test" />
+    <file name="dictionary_b.phpt" role="test" />
+    <file name="dictionary_named_args.phpt" role="test" />
+    <file name="inc.phpt" role="test" />
+    <file name="inc_comp.phpt" role="test" />
+    <file name="inc_decomp.phpt" role="test" />
+    <file name="inc_dictionary.phpt" role="test" />
+    <file name="inc_named_args.phpt" role="test" />
+    <file name="inc_ns.phpt" role="test" />
     <file name="info.phpt" role="test" />
+    <file name="named_args.phpt" role="test" />
     <file name="ob_001.phpt" role="test" />
     <file name="ob_002.phpt" role="test" />
     <file name="ob_003.phpt" role="test" />
@@ -148,6 +172,10 @@
     <file name="ob_016.phpt" role="test" />
     <file name="ob_017.phpt" role="test" />
     <file name="ob_018.phpt" role="test" />
+    <file name="ob_dcz_001.phpt" role="test" />
+    <file name="ob_dcz_002.phpt" role="test" />
+    <file name="ob_dcz_003.phpt" role="test" />
+    <file name="ob_dcz_004.phpt" role="test" />
     <file name="ob_skipif.inc" role="test" />
     <file name="streaming.zst" role="test" />
     <file name="streams_1.phpt" role="test" />
@@ -173,6 +201,8 @@
      <file name="ob_016.zstd" role="test" />
      <file name="ob_017.zstd" role="test" />
      <file name="ob_018.zstd" role="test" />
+     <file name="ob_data.zstd" role="test" />
+     <file name="ob_dcz.zstd" role="test" />
     </dir>
    </dir>
   </dir>
