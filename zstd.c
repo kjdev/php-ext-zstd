@@ -1298,6 +1298,7 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
     char *dict = PHP_ZSTD_G(output_compression_dict);
 
     if (!dict || strlen(dict) <= 0) {
+        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
@@ -1307,6 +1308,7 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
                                         NULL, context);
     if (!stream) {
         ZSTD_WARNING("could not open dictionary stream: %s", dict);
+        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
@@ -1320,6 +1322,7 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
     php_stream_close(stream);
 
     if (!data) {
+        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
