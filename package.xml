@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2025-08-12</date>
+ <date>2025-08-17</date>
  <version>
-  <release>0.15.0</release>
-  <api>0.15.0</api>
+  <release>0.15.1</release>
+  <api>0.15.1</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,21 +21,7 @@
  </stability>
  <license>MIT</license>
  <notes>
-- feat: Incremental Compression: Added zstd_(un)compress_init() and zstd_(un)compress_add() functions for streaming compression
-- feat: ZstdContext Classes: Introduced Zstd\Compress\Context and Zstd\Uncompress\Context classes for object-oriented streaming
-- feat: Dictionary Support: Added dictionary parameter to compress and uncompress functions
-- feat: Named Arguments: Support for PHP 8.0+ named arguments
-- update: Zstd Library: Updated to zstd 1.5.7
-- update: Constants Unification: Renamed constants for consistency:
-  - LIBZSTD_VERSION_NUMBER → ZSTD_VERSION_NUMBER
-  - LIBZSTD_VERSION_STRING → ZSTD_VERSION_STRING
-  - Default compression level now uses ZSTD_CLEVEL_DEFAULT
-- experimental: DCZ Support: Experimental compression dictionary transport support in output handler
-- improve: Refactored internal compression/decompression to use stream-based approach with php_zstd_context{}
-- improve: Enhanced output handler with dictionary support
-- improve: Error handling and memory management
-- fix: streaming compressed data with zstd_uncompress_dict()
-- fix: improved output handler context initialization
+- fix: disable dcb encoding when dictionary loading fails
  </notes>
  <contents>
   <dir name="/">
@@ -176,6 +162,7 @@
     <file name="ob_dcz_002.phpt" role="test" />
     <file name="ob_dcz_003.phpt" role="test" />
     <file name="ob_dcz_004.phpt" role="test" />
+    <file name="ob_dcz_005.phpt" role="test" />
     <file name="ob_skipif.inc" role="test" />
     <file name="streaming.zst" role="test" />
     <file name="streams_1.phpt" role="test" />
