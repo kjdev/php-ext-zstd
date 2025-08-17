@@ -1298,7 +1298,6 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
     char *dict = PHP_ZSTD_G(output_compression_dict);
 
     if (!dict || strlen(dict) <= 0) {
-        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
@@ -1308,7 +1307,6 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
                                         NULL, context);
     if (!stream) {
         ZSTD_WARNING("could not open dictionary stream: %s", dict);
-        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
@@ -1322,7 +1320,6 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
     php_stream_close(stream);
 
     if (!data) {
-        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
         return NULL;
     }
 
@@ -1360,7 +1357,6 @@ php_zstd_output_handler_load_dict(php_zstd_context *ctx)
         } else {
             php_error_docref(NULL, E_WARNING,
                              "zstd: not found available-dictionary");
-            PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
             zend_string_release(data);
             data = NULL;
         }
@@ -1378,6 +1374,9 @@ static zend_result php_zstd_output_handler_context_start(php_zstd_context *ctx)
     }
 
     zend_string *dict = php_zstd_output_handler_load_dict(ctx);
+    if (dict == NULL) {
+        PHP_ZSTD_G(compression_coding) &= ~PHP_ZSTD_ENCODING_DCZ;
+    }
     if (!PHP_ZSTD_G(compression_coding)) {
         return FAILURE;
     }
