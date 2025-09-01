@@ -527,7 +527,7 @@ ZEND_FUNCTION(zstd_uncompress)
     ctx.input.size = ZSTR_LEN(input);
     ctx.input.pos = 0;
 
-    ctx.output.dst = emalloc(size);
+    ctx.output.dst = erealloc(ctx.output.dst, size);
     ctx.output.size = size;
     ctx.output.pos = 0;
 
@@ -646,7 +646,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     ctx.input.size = ZSTR_LEN(input);
     ctx.input.pos = 0;
 
-    ctx.output.dst = emalloc(size);
+    ctx.output.dst = erealloc(ctx.output.dst, size);
     ctx.output.size = size;
     ctx.output.pos = 0;
 
