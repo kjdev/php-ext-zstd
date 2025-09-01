@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2025-08-17</date>
+ <date>2025-09-01</date>
  <version>
-  <release>0.15.1</release>
-  <api>0.15.1</api>
+  <release>0.15.2</release>
+  <api>0.15.2</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,7 +21,7 @@
  </stability>
  <license>MIT</license>
  <notes>
-- fix: disable dcb encoding when dictionary loading fails
+- fix: memory leak with zstd_uncompress/zstd_uncompress_dist
  </notes>
  <contents>
   <dir name="/">
@@ -139,6 +139,7 @@
     <file name="inc_named_args.phpt" role="test" />
     <file name="inc_ns.phpt" role="test" />
     <file name="info.phpt" role="test" />
+    <file name="memory_001.phpt" role="test" />
     <file name="named_args.phpt" role="test" />
     <file name="ob_001.phpt" role="test" />
     <file name="ob_002.phpt" role="test" />
