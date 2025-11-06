@@ -8,7 +8,7 @@ on:
 env:
   PHP_EXT: zstd
   PHP_EXT_VERSION: ${{ github.event.release.tag_name }}
-  BIN_SDK_VER: 2.3.0
+  BIN_SDK_VER: 2.5.0
 
 jobs:
   ci:
