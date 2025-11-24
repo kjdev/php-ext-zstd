@@ -70,7 +70,7 @@ jobs:
       - name: Install PHP APCu extension
         run: |
           printf "\n" | pecl install apcu
-          echo 'extension=apcu.so' > $(php --ini | grep 'Scan for' | sed 's|.* \(/.*\)$|\1|')/apcu.ini
+          echo 'extension=apcu.so' > $(php --ini | grep 'Scan for' | sed -e 's/"//g' -e 's|.* \(/.*\)$|\1|')/apcu.ini
         if: ${{ matrix.apcu }}
 
       - name: Build
