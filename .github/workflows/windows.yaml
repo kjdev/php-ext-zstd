@@ -18,6 +18,7 @@ jobs:
     strategy:
       matrix:
         php:
+          - '8.5'
           - '8.4'
           - '8.3'
           - '8.2'
@@ -38,6 +39,11 @@ jobs:
           - ''
           - 'apcu'
         exclude:
+          - php: '8.5'
+            vs: vs16
+          - php: '8.5'
+            vs: vs17
+            apcu: 'apcu'
           - php: '8.4'
             vs: vs16
           - php: '8.4'
