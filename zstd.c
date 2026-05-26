@@ -33,15 +33,10 @@
 #include <ext/standard/base64.h>
 #include <ext/standard/file.h>
 #include <ext/standard/info.h>
-#if PHP_VERSION_ID < 70200
-#include <ext/standard/php_smart_string.h>
-#else
-#include "Zend/zend_smart_string.h"
-#endif
+#include <zend_smart_str.h>
 #if defined(HAVE_APCU_SUPPORT)
 #include <ext/standard/php_var.h>
 #include <ext/apcu/apc_serializer.h>
-#include <zend_smart_str.h>
 #endif
 #include <Zend/zend_API.h>
 #include <Zend/zend_interfaces.h>
@@ -63,6 +58,19 @@
 // zend_string_efree doesnt exist in PHP7.2, 20180731 is PHP 7.3
 #if ZEND_MODULE_API_NO < 20180731
 #define zend_string_efree(string) zend_string_free(string)
+#endif
+
+#if PHP_VERSION_ID < 70200
+static zend_always_inline zend_string *smart_str_extract(smart_str *str) {
+	if (str->s) {
+		smart_str_0(str);
+		zend_string *res = str->s;
+		str->s = NULL;
+		return res;
+	} else {
+		return ZSTR_EMPTY_ALLOC();
+	}
+}
 #endif
 
 #define ZSTD_WARNING(...) \
@@ -448,7 +456,7 @@ static size_t zstd_check_compress_level(zend_long level)
 ZEND_FUNCTION(zstd_compress)
 {
     size_t result;
-    smart_string out = { 0 };
+    smart_str out = { 0 };
     zend_long level = ZSTD_CLEVEL_DEFAULT;
     zend_string *input, *dict = NULL;
     php_zstd_context ctx;
@@ -480,15 +488,14 @@ ZEND_FUNCTION(zstd_compress)
                                       &ctx.input, ZSTD_e_end);
         if (ZSTD_isError(result)) {
             ZSTD_WARNING("%s", ZSTD_getErrorName(result));
-            smart_string_free(&out);
+            smart_str_free(&out);
             php_zstd_context_free(&ctx);
             RETURN_FALSE;
         }
-        smart_string_appendl(&out, ctx.output.dst, ctx.output.pos);
+        smart_str_appendl(&out, ctx.output.dst, ctx.output.pos);
     } while (result > 0);
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 
     php_zstd_context_free(&ctx);
 }
@@ -497,7 +504,7 @@ ZEND_FUNCTION(zstd_uncompress)
 {
     size_t chunk, result;
     uint64_t size;
-    smart_string out = { 0 };
+    smart_str out = { 0 };
     zend_string *input, *dict = NULL;
     php_zstd_context ctx;
 
@@ -540,21 +547,20 @@ ZEND_FUNCTION(zstd_uncompress)
         ctx.output.pos = 0;
         result = ZSTD_decompressStream(ctx.dctx, &ctx.output, &ctx.input);
         if (ZSTD_IS_ERROR(result)) {
-            smart_string_free(&out);
+            smart_str_free(&out);
             php_zstd_context_free(&ctx);
             ZSTD_WARNING("%s", ZSTD_getErrorName(result));
             RETURN_FALSE;
         }
 
-        smart_string_appendl(&out, ctx.output.dst, ctx.output.pos);
+        smart_str_appendl(&out, ctx.output.dst, ctx.output.pos);
 
         if (result == 0) {
             break;
         }
     }
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 
     php_zstd_context_free(&ctx);
 }
@@ -562,7 +568,7 @@ ZEND_FUNCTION(zstd_uncompress)
 ZEND_FUNCTION(zstd_compress_dict)
 {
     size_t result;
-    smart_string out = { 0 };
+    smart_str out = { 0 };
     zend_long level = ZSTD_CLEVEL_DEFAULT;
     zend_string *input, *dict;
     php_zstd_context ctx;
@@ -596,15 +602,14 @@ ZEND_FUNCTION(zstd_compress_dict)
                                       &ctx.input, ZSTD_e_end);
         if (ZSTD_isError(result)) {
             ZSTD_WARNING("%s", ZSTD_getErrorName(result));
-            smart_string_free(&out);
+            smart_str_free(&out);
             php_zstd_context_free(&ctx);
             RETURN_FALSE;
         }
-        smart_string_appendl(&out, ctx.output.dst, ctx.output.pos);
+        smart_str_appendl(&out, ctx.output.dst, ctx.output.pos);
     } while (result > 0);
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 
     php_zstd_context_free(&ctx);
 }
@@ -613,7 +618,7 @@ ZEND_FUNCTION(zstd_uncompress_dict)
 {
     size_t chunk, result;
     unsigned long long size;
-    smart_string out = { 0 };
+    smart_str out = { 0 };
     zend_string *input, *dict;
     php_zstd_context ctx;
 
@@ -659,21 +664,20 @@ ZEND_FUNCTION(zstd_uncompress_dict)
         ctx.output.pos = 0;
         result = ZSTD_decompressStream(ctx.dctx, &ctx.output, &ctx.input);
         if (ZSTD_IS_ERROR(result)) {
-            smart_string_free(&out);
+            smart_str_free(&out);
             php_zstd_context_free(&ctx);
             ZSTD_WARNING("%s", ZSTD_getErrorName(result));
             RETURN_FALSE;
         }
 
-        smart_string_appendl(&out, ctx.output.dst, ctx.output.pos);
+        smart_str_appendl(&out, ctx.output.dst, ctx.output.pos);
 
         if (result == 0) {
             break;
         }
     }
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 
     php_zstd_context_free(&ctx);
 }
@@ -706,7 +710,7 @@ ZEND_FUNCTION(zstd_compress_add)
     php_zstd_context *ctx;
     zend_string *input;
     zend_bool end = 0;
-    smart_string out = {0};
+    smart_str out = {0};
 #if PHP_VERSION_ID >= 80000
     zend_object *obj;
 #else
@@ -743,14 +747,13 @@ ZEND_FUNCTION(zstd_compress_add)
                                    &in, end ? ZSTD_e_end : ZSTD_e_flush);
         if (ZSTD_isError(res)) {
             ZSTD_WARNING("%s", ZSTD_getErrorName(res));
-            smart_string_free(&out);
+            smart_str_free(&out);
             RETURN_FALSE;
         }
-        smart_string_appendl(&out, ctx->output.dst, ctx->output.pos);
+        smart_str_appendl(&out, ctx->output.dst, ctx->output.pos);
     } while (res > 0);
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 }
 
 ZEND_FUNCTION(zstd_uncompress_init)
@@ -775,7 +778,7 @@ ZEND_FUNCTION(zstd_uncompress_add)
     zend_object *context;
     php_zstd_context *ctx;
     zend_string *input;
-    smart_string out = {0};
+    smart_str out = {0};
 #if PHP_VERSION_ID >= 80000
     zend_object *obj;
 #else
@@ -815,15 +818,14 @@ ZEND_FUNCTION(zstd_uncompress_add)
         res = ZSTD_decompressStream(ctx->dctx, &ctx->output, &in);
         if (ZSTD_isError(res)) {
             ZSTD_WARNING("%s", ZSTD_getErrorName(res));
-            smart_string_free(&out);
+            smart_str_free(&out);
             RETURN_FALSE;
         }
 
-        smart_string_appendl(&out, ctx->output.dst, ctx->output.pos);
+        smart_str_appendl(&out, ctx->output.dst, ctx->output.pos);
     }
 
-    RETVAL_STRINGL(out.c, out.len);
-    smart_string_free(&out);
+    RETVAL_STR(smart_str_extract(&out));
 }
 
 typedef struct _php_zstd_stream_data {
