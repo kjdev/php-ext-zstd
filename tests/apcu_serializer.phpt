@@ -61,6 +61,32 @@ var_dump($unserialized);
 if ($unserialized[0] === $unserialized[1]) {
   echo "SAME\n";
 }
+
+function getEntrySize(string $key) {
+  $info = apcu_cache_info();
+  if (!is_array($info) || !isset($info['cache_list']) || !is_array($info['cache_list'])) {
+    return null;
+  }
+  foreach($info['cache_list'] as $entry) {
+    if (($entry['info'] ?? null) === $key) {
+      return $entry['mem_size'];
+    }
+  }
+  return null;
+}
+include(dirname(__FILE__) . '/data.inc');
+
+ini_set('zstd.apcu_compression_level', 3);
+apcu_store('size_test', [$data]);
+$a = getEntrySize('size_test');
+
+ini_set('zstd.apcu_compression_level', 19);
+apcu_store('size_test', [$data]);
+$b = getEntrySize('size_test');
+
+if ($a !== null && $b !== null && $b < $a) {
+  echo "SMALLER\n";
+}
 ?>
 --EXPECTF--
 zstd
@@ -100,3 +126,4 @@ array(2) {
   }
 }
 SAME
+SMALLER

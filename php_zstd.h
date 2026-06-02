@@ -44,8 +44,11 @@ extern zend_module_entry zstd_module_entry;
 
 typedef struct _php_zstd_context php_zstd_context;
 
-#if PHP_VERSION_ID >= 80000
 ZEND_BEGIN_MODULE_GLOBALS(zstd)
+#if defined(HAVE_APCU_SUPPORT)
+    zend_long apcu_compression_level;
+#endif
+#if PHP_VERSION_ID >= 80000
     zend_long output_compression;
     zend_long output_compression_default;
     zend_long output_compression_level;
@@ -53,8 +56,10 @@ ZEND_BEGIN_MODULE_GLOBALS(zstd)
     php_zstd_context *ob_handler;
     bool handler_registered;
     int compression_coding;
-ZEND_END_MODULE_GLOBALS(zstd);
+#else
+    int unused_dummy; /* no empty struct */
 #endif
+ZEND_END_MODULE_GLOBALS(zstd);
 
 #ifdef ZTS
 #define PHP_ZSTD_G(v) TSRMG(zstd_globals_id, zend_zstd_globals *, v)
