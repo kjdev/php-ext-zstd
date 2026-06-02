@@ -99,7 +99,7 @@ struct _php_zstd_context {
 static php_zstd_context *php_zstd_context_from_obj(zend_object *obj)
 {
     return (php_zstd_context *)
-        ((char *)(obj) - XtOffsetOf(php_zstd_context, std));
+        ((char *)(obj) - offsetof(php_zstd_context, std));
 }
 
 #define PHP_ZSTD_CONTEXT_OBJ_INIT_OF_CLASS(ce) \
@@ -1773,7 +1773,7 @@ ZEND_MINIT_FUNCTION(zstd)
     memcpy(&php_zstd_compress_context_object_handlers,
            &std_object_handlers, sizeof(zend_object_handlers));
     php_zstd_compress_context_object_handlers.offset
-        = XtOffsetOf(php_zstd_context, std);
+        = offsetof(php_zstd_context, std);
     php_zstd_compress_context_object_handlers.free_obj
         = php_zstd_context_free_obj;
     php_zstd_compress_context_object_handlers.get_constructor
@@ -1801,7 +1801,7 @@ ZEND_MINIT_FUNCTION(zstd)
     memcpy(&php_zstd_uncompress_context_object_handlers,
            &std_object_handlers, sizeof(zend_object_handlers));
     php_zstd_uncompress_context_object_handlers.offset
-        = XtOffsetOf(php_zstd_context, std);
+        = offsetof(php_zstd_context, std);
     php_zstd_uncompress_context_object_handlers.free_obj
         = php_zstd_context_free_obj;
     php_zstd_uncompress_context_object_handlers.get_constructor
