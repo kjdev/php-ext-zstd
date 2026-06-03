@@ -432,9 +432,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_ob_zstd_handler, 0, 0, 2)
     ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 #endif
+#endif
 
 ZEND_DECLARE_MODULE_GLOBALS(zstd);
-#endif
 
 #ifndef Z_PARAM_STR_OR_NULL
 #define Z_PARAM_STR_OR_NULL(dest) Z_PARAM_STR_EX(dest, 1, 0)
@@ -1182,6 +1182,11 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
     php_serialize_data_t var_hash;
     size_t size;
     smart_str var = {0};
+    int level = PHP_ZSTD_G(apcu_compression_level);
+
+    if (!zstd_check_compress_level(level) || level == 0) {
+        level = ZSTD_CLEVEL_DEFAULT;
+    }
 
     PHP_VAR_SERIALIZE_INIT(var_hash);
     php_var_serialize(&var, (zval*) value, &var_hash);
@@ -1194,7 +1199,7 @@ static int APC_SERIALIZER_NAME(zstd)(APC_SERIALIZER_ARGS)
     *buf = emalloc(size + 1);
 
     *buf_len = ZSTD_compress(*buf, size, ZSTR_VAL(var.s), ZSTR_LEN(var.s),
-                             ZSTD_CLEVEL_DEFAULT);
+                             level);
     if (ZSTD_isError(*buf_len) || *buf_len == 0) {
         efree(*buf);
         *buf = NULL;
@@ -1716,24 +1721,32 @@ static PHP_INI_MH(OnUpdate_zstd_output_compression)
 
     return SUCCESS;
 }
+#endif
 
 #define STRINGIFY(n) #n
 #define TOSTRING(n) STRINGIFY(n)
 
 PHP_INI_BEGIN()
-  STD_PHP_INI_BOOLEAN("zstd.output_compression", "0",
+#if PHP_VERSION_ID >= 80000
+    STD_PHP_INI_BOOLEAN("zstd.output_compression", "0",
                       PHP_INI_ALL, OnUpdate_zstd_output_compression,
                       output_compression_default,
                       zend_zstd_globals, zstd_globals)
-  STD_PHP_INI_ENTRY("zstd.output_compression_level",
+    STD_PHP_INI_ENTRY("zstd.output_compression_level",
                     TOSTRING(ZSTD_CLEVEL_DEFAULT),
                     PHP_INI_ALL, OnUpdateLong, output_compression_level,
                     zend_zstd_globals, zstd_globals)
-  STD_PHP_INI_ENTRY("zstd.output_compression_dict", "",
+    STD_PHP_INI_ENTRY("zstd.output_compression_dict", "",
                     PHP_INI_ALL, OnUpdateString, output_compression_dict,
                     zend_zstd_globals, zstd_globals)
-PHP_INI_END()
 #endif
+#if defined(HAVE_APCU_SUPPORT)
+    STD_PHP_INI_ENTRY("zstd.apcu_compression_level",
+                    TOSTRING(ZSTD_CLEVEL_DEFAULT),
+                    PHP_INI_ALL, OnUpdateLong, apcu_compression_level,
+                    zend_zstd_globals, zstd_globals)
+#endif
+PHP_INI_END()
 
 ZEND_MINIT_FUNCTION(zstd)
 {
@@ -1827,18 +1840,14 @@ ZEND_MINIT_FUNCTION(zstd)
     php_output_handler_conflict_register(
         ZEND_STRL(PHP_ZSTD_OUTPUT_HANDLER_NAME),
         php_zstd_output_conflict_check);
-
-    REGISTER_INI_ENTRIES();
 #endif
-
+    REGISTER_INI_ENTRIES();
     return SUCCESS;
 }
 
 ZEND_MSHUTDOWN_FUNCTION(zstd)
 {
-#if PHP_VERSION_ID >= 80000
     UNREGISTER_INI_ENTRIES();
-#endif
     return SUCCESS;
 }
 
@@ -1876,22 +1885,19 @@ ZEND_MINFO_FUNCTION(zstd)
     php_info_print_table_row(2, "APCu serializer ABI", APC_SERIALIZER_ABI);
 #endif
     php_info_print_table_end();
-
-#if PHP_VERSION_ID >= 80000
     DISPLAY_INI_ENTRIES();
-#endif
 }
 
-#if PHP_VERSION_ID >= 80000
 ZEND_GINIT_FUNCTION(zstd)
 {
 #if defined(COMPILE_DL_ZSTD) && defined(ZTS)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+#if PHP_VERSION_ID >= 80000
     zstd_globals->ob_handler = NULL;
     zstd_globals->handler_registered = 0;
-}
 #endif
+}
 
 static zend_function_entry zstd_functions[] = {
     ZEND_FE(zstd_compress, arginfo_zstd_compress)
@@ -1972,15 +1978,11 @@ zend_module_entry zstd_module_entry = {
     ZEND_RSHUTDOWN(zstd),
     ZEND_MINFO(zstd),
     PHP_ZSTD_VERSION,
-#if PHP_VERSION_ID >= 80000
     PHP_MODULE_GLOBALS(zstd),
     PHP_GINIT(zstd),
     NULL,
     NULL,
     STANDARD_MODULE_PROPERTIES_EX
-#else
-    STANDARD_MODULE_PROPERTIES
-#endif
 };
 
 #ifdef COMPILE_DL_ZSTD
