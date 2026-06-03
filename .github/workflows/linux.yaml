@@ -52,18 +52,16 @@ jobs:
     steps:
       - name: Prepare required command
         run: |
-          apk upgrade --no-cache
           apk add --no-cache autoconf gcc git libtool make musl-dev
 
-      - name: adding github workspace as safe directory
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          set-safe-directory: true
+          submodules: ${{ ! matrix.library }}
+          token: ${{ github.token }}
 
-      - name: Checkout submodules
-        run: |
-          git submodule update --init --recursive
-        if: ${{ ! matrix.library }}
       - name: Install dependency library
         run: |
           apk add --no-cache zstd-dev

@@ -69,14 +69,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          set-safe-directory: true
+          submodules: ${{ ! matrix.library }}
+          token: ${{ github.token }}
 
-      - name: Checkout submodule
-        run: .\.github\workflows\submodule.ps1
-        shell: pwsh
-        if: ${{ ! matrix.library }}
       - name: Install dependency library
         run: .\.github\workflows\vcpkg.ps1
         shell: pwsh
@@ -84,7 +83,7 @@ jobs:
           VCPKG_LIBRARY: zstd
         if: ${{ matrix.library }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             C:\php\php-*.zip
@@ -118,7 +117,7 @@ jobs:
 
       - if: ${{ github.event_name == 'release' && matrix.library == false && matrix.apcu == '' }}
         name: Store archive DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}
           path: .\php_${{ env.PHP_EXT }}-${{ env.PHP_EXT_VERSION }}-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.vs }}-${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}.zip
@@ -135,12 +134,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          set-safe-directory: true
+          token: ${{ github.token }}
 
       - name: Get artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts
           merge-multiple: true
