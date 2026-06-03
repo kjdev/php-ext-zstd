@@ -11,49 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         php:
           - '8.5'
-          - '8.5-zts'
           - '8.4'
-          - '8.4-zts'
           - '8.3'
-          - '8.3-zts'
           - '8.2'
-          - '8.2-zts'
           - '8.1'
-          - '8.1-zts'
+          - '8.0'
+          - '7.4'
+          - '7.3'
+          - '7.2'
+          - '7.1'
+          - '7.0'
+        ts:
+          - nts
+          - zts
         library:
           - ''
           - 'system'
         apcu:
           - ''
           - 'apcu'
-        image: [php]
-        include:
-          - php: '8.0'
-            image: ghcr.io/kjdev/php
-          - php: '7.4'
-            image: ghcr.io/kjdev/php
-          - php: '7.3'
-            image: ghcr.io/kjdev/php
-          - php: '7.2'
-            image: ghcr.io/kjdev/php
-          - php: '7.1'
-            image: ghcr.io/kjdev/php
-          - php: '7.0'
-            image: ghcr.io/kjdev/php
 
     if: contains(github.event.head_commit.message, 'ci skip') == false
 
-    container:
-      image: ${{ matrix.image }}:${{ matrix.php }}-alpine
-
     steps:
-      - name: Prepare required command
-        run: |
-          apk add --no-cache autoconf gcc git libtool make musl-dev
-
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -62,16 +46,22 @@ jobs:
           submodules: ${{ ! matrix.library }}
           token: ${{ github.token }}
 
+      - name: Setup PHP (${{ matrix.php }} ${{ matrix.ts }})
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: xml, mbstring${{ matrix.apcu != '' && ', apcu' || '' }}
+          coverage: none
+          ini-values: zend.assertions=1
+        env:
+          phpts: ${{ matrix.ts }}
+
       - name: Install dependency library
         run: |
-          apk add --no-cache zstd-dev
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libzstd-dev
         if: ${{ matrix.library }}
-
-      - name: Install PHP APCu extension
-        run: |
-          printf "\n" | pecl install apcu
-          echo 'extension=apcu.so' > $(php --ini | grep 'Scan for' | sed -e 's/"//g' -e 's|.* \(/.*\)$|\1|')/apcu.ini
-        if: ${{ matrix.apcu }}
 
       - name: Build
         run: |
@@ -89,7 +79,7 @@ jobs:
       - name: Test Preparation APCu
         run: |
           cp $(php-config --extension-dir)/apcu.so modules/
-          sed -i 's/\$(PHP_TEST_SHARED_EXTENSIONS)/-d extension=apcu \$(PHP_TEST_SHARED_EXTENSIONS)/' Makefile
+          sed -i 's/\$(PHP_TEST_SHARED_EXTENSIONS)/-d extension=apcu.so \$(PHP_TEST_SHARED_EXTENSIONS)/' Makefile
         if: ${{ matrix.apcu }}
       - name: Test
         run: |
