@@ -110,6 +110,9 @@ fi
 dnl APCu
 if test "$PHP_APCU" != "no"; then
   AC_MSG_CHECKING([for APCu includes])
+  if test ! -f "$phpincludedir/ext/apcu/apc_serializer.h" && test -f "$abs_srcdir/ext/apcu/apc_serializer.h"; then
+    phpincludedir="$abs_srcdir"
+  fi
   if test -f "$phpincludedir/ext/apcu/apc_serializer.h"; then
     apc_inc_path="$phpincludedir"
     AC_MSG_RESULT([APCu in $apc_inc_path])
