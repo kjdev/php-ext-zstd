@@ -76,6 +76,13 @@ jobs:
           submodules: ${{ ! matrix.library }}
           token: ${{ github.token }}
 
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: ${{ matrix.arch }}
+          vsversion: ${{ matrix.vs == 'vs17' && '2022' || '2019' }}
+          toolset: ${{ matrix.vs == 'vs17' && '14.44' || '' }}
+
       - name: Install dependency library
         run: .\.github\workflows\vcpkg.ps1
         shell: pwsh
