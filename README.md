@@ -64,11 +64,12 @@ extension=zstd.so
 
 ### Output handler option
 
-Name                            | Default | Changeable
-------------------------------- | ------- | ----------
-zstd.output\_compression        | 0       | PHP\_INI\_ALL
-zstd.output\_compression\_level | 3       | PHP\_INI\_ALL
-zstd.output\_compression\_dict  | ""      | PHP\_INI\_ALL
+Name                                    | Default | Changeable
+--------------------------------------- | ------- | ----------
+zstd.output\_compression                | 0       | PHP\_INI\_ALL
+zstd.output\_compression\_level         | 3       | PHP\_INI\_ALL
+zstd.output\_compression\_exclude\_types | ""      | PHP\_INI\_ALL
+zstd.output\_compression\_dict          | ""      | PHP\_INI\_ALL
 
 * zstd.output\_compression _boolean_/_integer_
 
@@ -84,6 +85,14 @@ zstd.output\_compression\_dict  | ""      | PHP\_INI\_ALL
     Compression level used for transparent output compression.
     Specify a value between 1 to 22.
     The default value of `ZSTD_COMPRESS_LEVEL_DEFAULT` (3).
+
+* zstd.output\_compression\_exclude\_types _string_
+
+    Comma-separated list of MIME types to exclude from transparent output
+    compression, e.g. `"image/*,application/pdf"`. Both exact types
+    (`application/pdf`) and wildcard subtypes (`image/*`) are supported.
+    The comparison ignores any parameters (such as `charset`) present in
+    the response's `Content-Type` header.
 
 * zstd.output\_compression\_dict _string_
 
