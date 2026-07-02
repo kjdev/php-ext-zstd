@@ -52,6 +52,7 @@ ZEND_BEGIN_MODULE_GLOBALS(zstd)
     zend_long output_compression;
     zend_long output_compression_default;
     zend_long output_compression_level;
+    char *output_compression_exclude_types;
     char *output_compression_dict;
     php_zstd_context *ob_handler;
     bool handler_registered;
