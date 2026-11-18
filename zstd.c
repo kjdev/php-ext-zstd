@@ -1229,25 +1229,57 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     const unsigned char* tmp;
     int result;
     php_unserialize_data_t var_hash;
-    size_t var_len;
-    uint64_t size;
+    size_t var_len, ret, chunk;
+    ZSTD_DCtx* dctx;
+    ZSTD_inBuffer input;
+    ZSTD_outBuffer output;
+    smart_str out = {0};
     unsigned char* var;
 
-    size = ZSTD_getFrameContentSize(buf, buf_len);
-    if (size == ZSTD_CONTENTSIZE_ERROR
-        || size == ZSTD_CONTENTSIZE_UNKNOWN) {
+    if (ZSTD_getFrameContentSize(buf, buf_len) == ZSTD_CONTENTSIZE_ERROR) {
         ZVAL_NULL(value);
         return 0;
     }
 
-    var = (unsigned char*) emalloc(size);
-
-    var_len = ZSTD_decompress(var, size, buf, buf_len);
-    if (ZSTD_isError(var_len) || var_len == 0) {
-        efree(var);
+    dctx = ZSTD_createDCtx();
+    if (dctx == NULL) {
         ZVAL_NULL(value);
         return 0;
     }
+
+    /* The frame header size is attacker-controlled, so it must not size the
+     * buffer: decompress chunk by chunk instead. */
+    chunk = ZSTD_DStreamOutSize();
+    output.dst = emalloc(chunk);
+    output.size = chunk;
+
+    input.src = buf;
+    input.size = buf_len;
+    input.pos = 0;
+
+    ret = 1;
+    while (ret != 0 && input.pos < input.size) {
+        output.pos = 0;
+        ret = ZSTD_decompressStream(dctx, &output, &input);
+        if (ZSTD_isError(ret)) {
+            break;
+        }
+        smart_str_appendl(&out, output.dst, output.pos);
+    }
+
+    efree(output.dst);
+    ZSTD_freeDCtx(dctx);
+
+    /* ret != 0 here means the frame is truncated or the decoder failed. */
+    if (ret != 0 || out.s == NULL || ZSTR_LEN(out.s) == 0) {
+        smart_str_free(&out);
+        ZVAL_NULL(value);
+        return 0;
+    }
+
+    smart_str_0(&out);
+    var = (unsigned char*) ZSTR_VAL(out.s);
+    var_len = ZSTR_LEN(out.s);
 
     PHP_VAR_UNSERIALIZE_INIT(var_hash);
     tmp = var;
@@ -1257,7 +1289,7 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
     if (!result) {
         php_error_docref(NULL, E_NOTICE,
                          "Error at offset %ld of %ld bytes",
-                         (long) (tmp - (unsigned char*) var),
+                         (long) (tmp - var),
                          (long) var_len);
         ZVAL_NULL(value);
         result = 0;
@@ -1265,7 +1297,7 @@ static int APC_UNSERIALIZER_NAME(zstd)(APC_UNSERIALIZER_ARGS)
         result = 1;
     }
 
-    efree(var);
+    smart_str_free(&out);
 
     return result;
 }
