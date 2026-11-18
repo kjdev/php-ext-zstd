@@ -511,8 +511,6 @@ ZEND_FUNCTION(zstd_uncompress)
     if (size == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
-    } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
-        size = ZSTD_DStreamOutSize();
     }
 
     php_zstd_context_init(&ctx);
@@ -527,8 +525,10 @@ ZEND_FUNCTION(zstd_uncompress)
     ctx.input.size = ZSTR_LEN(input);
     ctx.input.pos = 0;
 
-    ctx.output.dst = erealloc(ctx.output.dst, size);
-    ctx.output.size = size;
+    /* The frame header size is attacker-controlled, so it must not size the
+     * buffer: each pass writes at most one chunk before it is appended to out. */
+    ctx.output.dst = erealloc(ctx.output.dst, chunk);
+    ctx.output.size = chunk;
     ctx.output.pos = 0;
 
     while (ctx.input.pos < ctx.input.size) {
@@ -628,8 +628,6 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     } else if (size == ZSTD_CONTENTSIZE_ERROR) {
         ZSTD_WARNING("it was not compressed by zstd");
         RETURN_FALSE;
-    } else if (size == ZSTD_CONTENTSIZE_UNKNOWN) {
-        size = ZSTD_DStreamOutSize();
     }
 
     php_zstd_context_init(&ctx);
@@ -644,8 +642,10 @@ ZEND_FUNCTION(zstd_uncompress_dict)
     ctx.input.size = ZSTR_LEN(input);
     ctx.input.pos = 0;
 
-    ctx.output.dst = erealloc(ctx.output.dst, size);
-    ctx.output.size = size;
+    /* The frame header size is attacker-controlled, so it must not size the
+     * buffer: each pass writes at most one chunk before it is appended to out. */
+    ctx.output.dst = erealloc(ctx.output.dst, chunk);
+    ctx.output.size = chunk;
     ctx.output.pos = 0;
 
     while (ctx.input.pos < ctx.input.size) {
