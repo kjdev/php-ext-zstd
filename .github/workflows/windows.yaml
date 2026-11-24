@@ -33,6 +33,7 @@ jobs:
         vs:
           - vs16
           - vs17
+          - vs18
         library:
           - false
           - true
@@ -41,24 +42,48 @@ jobs:
           - 'apcu'
         exclude:
           - php: '8.6'
+            vs: vs17
+          - php: '8.6'
             vs: vs16
+          - php: '8.6'
+            vs: vs18
+            apcu: 'apcu' # Doesn't exist
           - php: '8.6'
             vs: vs17
             apcu: 'apcu' # Doesn't exist
+          - php: '8.6'
+            vs: vs16
+            apcu: 'apcu' # Doesn't exist
+          - php: '8.5'
+            vs: vs18
           - php: '8.5'
             vs: vs16
+          - php: '8.5'
+            vs: vs18
+            apcu: 'apcu' # Doesn't exist
           - php: '8.5'
             vs: vs17
             apcu: 'apcu' # Doesn't exist
           - php: '8.4'
+            vs: vs18
+          - php: '8.4'
             vs: vs16
+          - php: '8.4'
+            vs: vs18
+            apcu: 'apcu' # Doesn't exist
           - php: '8.4'
             vs: vs17
             apcu: 'apcu' # Doesn't exist
           - php: '8.3'
+            vs: vs18
+          - php: '8.3'
             vs: vs17
           - php: '8.2'
+            vs: vs18
+          - php: '8.2'
             vs: vs17
+          - php: '8.1'
+            vs: vs18
           - php: '8.1'
             vs: vs17
 

@@ -25,7 +25,8 @@ if ($env:VCToolsVersion) {
         $toolsetMajorVersion, $toolsetMinorVersion = $toolset.Name.split(".")[0,1]
         $major = 14
         switch ($env:VS) {
-            'vs17' { $minorMin = 30; $minorMax = $null; break }
+            'vs18' { $minorMin = 40; $minorMax = $null; break }
+            'vs17' { $minorMin = 30; $minorMax = 39; break }
             'vs16' { $minorMin = 20; $minorMax = 29; break }
             Default { throw "VS version is not available" }
         }
