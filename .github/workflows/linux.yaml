@@ -67,6 +67,9 @@ jobs:
       - name: Build
         run: |
           phpize
+          if [ -z "$SED" ]; then
+            export SED=sed
+          fi
           ./configure
           make
         if: ${{ ! matrix.library }}
