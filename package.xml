@@ -12,8 +12,8 @@
  </lead>
  <date>2026-11-25</date>
  <version>
-  <release>0.19.0</release>
-  <api>0.19.0</api>
+  <release>0.19.1</release>
+  <api>0.19.1</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,11 +21,7 @@
  </stability>
  <license>MIT</license>
  <notes>
-- add: PHP 8.6 support
-- upgrade: built-in zstd library to 1.6.0
-- fix: stream close handlers report success instead of always returning EOF
-- fix: compressing stream reports short writes
-- fix: avoid allocating the frame-header-declared size in zstd_uncompress(), zstd_uncompress_dict() and the APCu unserializer
+- fix: add missing files to package.xml so that PIE/PECL builds succeed
  </notes>
  <contents>
   <dir name="/">
@@ -48,6 +44,7 @@
       <file name="allocations.h" role="src" />
       <file name="bits.h" role="src" />
       <file name="bitstream.h" role="src" />
+      <file name="bmi2.h" role="src" />
       <file name="compiler.h" role="src" />
       <file name="cpu.h" role="src" />
       <file name="debug.c" role="src" />
@@ -208,8 +205,12 @@
      <file name="ob_016.zstd" role="test" />
      <file name="ob_017.zstd" role="test" />
      <file name="ob_018.zstd" role="test" />
+     <file name="ob_099.zstd" role="test" />
      <file name="ob_data.zstd" role="test" />
      <file name="ob_dcz.zstd" role="test" />
+     <file name="ob_dcz_099.dcz" role="test" />
+     <file name="test.dic" role="test" />
+     <file name="test.xml" role="test" />
     </dir>
    </dir>
   </dir>
