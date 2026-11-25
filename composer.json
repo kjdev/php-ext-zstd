@@ -9,6 +9,11 @@
   "php-ext": {
     "extension-name": "zstd",
     "download-url-method": "pre-packaged-source",
-    "configure-options": []
+    "configure-options": [
+      {
+        "name": "with-libzstd",
+        "description": "Use the system zstd library"
+      }
+    ]
   }
 }
