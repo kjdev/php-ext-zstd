@@ -48,6 +48,7 @@
       <file name="allocations.h" role="src" />
       <file name="bits.h" role="src" />
       <file name="bitstream.h" role="src" />
+      <file name="bmi2.h" role="src" />
       <file name="compiler.h" role="src" />
       <file name="cpu.h" role="src" />
       <file name="debug.c" role="src" />
