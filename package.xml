@@ -10,10 +10,10 @@
   <email>kjdev@php.net</email>
   <active>yes</active>
  </lead>
- <date>2026-08-13</date>
+ <date>2026-11-25</date>
  <version>
-  <release>0.18.0</release>
-  <api>0.18.0</api>
+  <release>0.19.0</release>
+  <api>0.19.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -21,8 +21,11 @@
  </stability>
  <license>MIT</license>
  <notes>
-- add: built-in list of uncompressible MIME types for transparent output compression
-- add: negation tokens (!) in zstd.output_compression_exclude_types to compress a MIME type even though it is in the built-in list
+- add: PHP 8.6 support
+- upgrade: built-in zstd library to 1.6.0
+- fix: stream close handlers report success instead of always returning EOF
+- fix: compressing stream reports short writes
+- fix: avoid allocating the frame-header-declared size in zstd_uncompress(), zstd_uncompress_dict() and the APCu unserializer
  </notes>
  <contents>
   <dir name="/">
@@ -126,6 +129,7 @@
     <file name="011.phpt" role="test" />
     <file name="alias.phpt" role="test" />
     <file name="apcu_serializer.phpt" role="test" />
+    <file name="apcu_serializer_large.phpt" role="test" />
     <file name="data.dic" role="test" />
     <file name="data.inc" role="test" />
     <file name="dictionary.phpt" role="test" />
@@ -161,16 +165,22 @@
     <file name="ob_016.phpt" role="test" />
     <file name="ob_017.phpt" role="test" />
     <file name="ob_018.phpt" role="test" />
+    <file name="ob_099.phpt" role="test" />
     <file name="ob_dcz_001.phpt" role="test" />
     <file name="ob_dcz_002.phpt" role="test" />
     <file name="ob_dcz_003.phpt" role="test" />
     <file name="ob_dcz_004.phpt" role="test" />
     <file name="ob_dcz_005.phpt" role="test" />
+    <file name="ob_dcz_099.phpt" role="test" />
     <file name="ob_exclude_001.phpt" role="test" />
     <file name="ob_exclude_002.phpt" role="test" />
     <file name="ob_exclude_003.phpt" role="test" />
     <file name="ob_exclude_004.phpt" role="test" />
     <file name="ob_exclude_005.phpt" role="test" />
+    <file name="ob_exclude_006.phpt" role="test" />
+    <file name="ob_exclude_007.phpt" role="test" />
+    <file name="ob_exclude_008.phpt" role="test" />
+    <file name="ob_exclude_009.phpt" role="test" />
     <file name="ob_skipif.inc" role="test" />
     <file name="streaming.zst" role="test" />
     <file name="streams_1.phpt" role="test" />
@@ -182,6 +192,8 @@
     <file name="streams_7.phpt" role="test" />
     <file name="streams_8.phpt" role="test" />
     <file name="streams_9.phpt" role="test" />
+    <file name="streams_10.phpt" role="test" />
+    <file name="uncompress_forged_size.phpt" role="test" />
     <dir name="files">
      <file name="ob_001.zstd" role="test" />
      <file name="ob_003.zstd" role="test" />
